@@ -250,7 +250,8 @@ for i=GoodBetas_select
 end
 
 Fighandle=figure;
-set(Fighandle, 'Position', [100, 100, 1400, 900]);
+set(Fighandle, 'Position', [0, 0, 500, 1000]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
 counter=1;counter2=1;xplot=length(GoodBetas_select);yplot=3;
 back=[55 255 455];
 fwd=[155 355 555];
@@ -270,7 +271,7 @@ for i=GoodBetas_select
     H.mainLine.Color=colors(counter,:)/256;
     H.patch.FaceColor=colors(counter,:)/256;
     H.edge(1).Color=colors(counter,:)/256;
-    H.edge(2).Color=colors(counter,:)/256;
+    H.edge(2).Color=colors(counter,:)/256;cl
     temp=mean(FwdPlot,1);std_temp=std(FwdPlot,1,1);
     subplot(xplot,yplot,counter2+1);
     H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
@@ -281,10 +282,48 @@ for i=GoodBetas_select
     subplot(xplot,yplot,counter2+2);
     RespBWD=max(BackPlot,[],2);RespBWD=RespBWD+abs(min(RespBWD));
     RespFWD=max(FwdPlot,[],2);RespFWD=RespFWD+abs(min(RespFWD));
-    bar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),'FaceColor',colors(counter,:)/256);hold on; ylim([-1 1]);
-    errorbar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),std((RespFWD-RespBWD)./(RespFWD+RespBWD)),'.');hold off    
+    %bar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),'FaceColor',colors(counter,:)/256);hold on; ylim([-1 1]);
+    scatter(zeros(1,13)+1,DSI(:,counter,1),[],colors(counter,:)/256);hold on;ylim([-1.1 1.1]);set(gca,'xtick',[]);set(gca,'xcolor','none')
+    errorbar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),nanstd(DSI(:,counter,1)),'.','LineWidth',2,'MarkerEdgeColor',colors(counter,:)/256,'MarkerFaceColor',colors(counter,:)/256,'Color',colors(counter,:)/256);view([90 -90]);hold off    
     counter=counter+1;
     counter2=counter2+3;
+end
+
+back=[55 255 455];
+fwd=[155 355 555];
+StimLength=100;
+DS_raw=NaN(length(unique(idx_Fish)),3,2,length(GoodBetas_select));counter2=1;
+for j=GoodBetas_select
+    idx_temp=find(idxKmeans_ZS_goodmembers==j);
+    idx_fish_temp=idx_Fish(idx_temp);
+    counter=1;
+    for fish=(unique(idx_Fish)')
+        if find(idx_fish_temp==fish)
+            tempPlot=mean(ZS(idx_temp(find(idx_fish_temp==fish)),:),1);
+            BackPlot=zeros(3,StimLength);
+            FwdPlot=zeros(3,StimLength);
+            for i=1:3
+                BackPlot(i,:)=tempPlot(back(i):back(i)+99);
+                FwdPlot(i,:)=tempPlot(fwd(i):fwd(i)+99);
+            end
+            RespBWD=max(BackPlot,[],2);RespBWD=RespBWD+abs(min(RespBWD));
+            RespFWD=max(FwdPlot,[],2);RespFWD=RespFWD+abs(min(RespFWD));
+            DS_raw(counter,:,1,counter2)=RespBWD;
+            DS_raw(counter,:,2,counter2)=RespFWD;
+        end
+        counter=counter+1;
+    end
+    counter2=counter2+1;
+end
+
+DSI=zeros(length(unique(idx_Fish)),length(GoodBetas_select),2);
+for i=1:size(DSI,1)
+    for j=1:size(DSI,2)
+        RespFWD=DS_raw(i,:,2,j);
+        RespBWD=DS_raw(i,:,1,j);
+        DSI(i,j,1)=nanmean((RespFWD-RespBWD)./(RespFWD+RespBWD));
+        DSI(i,j,2)=nanstd((RespFWD-RespBWD)./(RespFWD+RespBWD));
+    end
 end
 
 %Spikes are not worth it
@@ -326,3 +365,61 @@ end
 % figure;subplot(1,2,1);plot(mean(ZS(find(idxKmeans_ZS_goodmembers==GoodBetas_select(i)),:),1))
 % subplot(1,2,2);plot(mean(GoodSpikes(find(idxKmeans_ZS_goodmembers==GoodBetas_select(i)),:),1))
 % end
+
+for i=1:length(GoodBetas_select)
+temp=find(idxKmeans_ZS_goodmembers==GoodBetas_select(i));
+GoodClusters_goodmembers(i).plane=idx_Plane(temp);
+GoodClusters_goodmembers(i).Fish=idx_Fish(temp);
+end
+
+% Fighandle=figure;
+% set(Fighandle, 'Position', [0, 0, 1000, 1000]);
+% set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+% xplot=floor(sqrt(length(GoodBetas_select)));yplot=ceil(length(GoodBetas_select)/xplot);
+% for i=1:length(GoodBetas_select)
+%     subplot(xplot,yplot,i);histogram(GoodClusters_goodmembers(i).Fish);
+% end
+
+Planes_perFish=cell(length(unique(idx_Fish)),length(GoodBetas_select));
+FishList=unique(idx_Fish);
+for j=1:size(Planes_perFish,2)
+    planes=GoodClusters_goodmembers(j).plane;
+    fish_idx=GoodClusters_goodmembers(j).Fish;
+    for i=1:size(Planes_perFish,1)        
+        Planes_perFish{i,j}=planes(find(fish_idx==FishList(i)));
+    end
+end
+clearvars i j planes fish_idx FishList
+
+Fighandle=figure;
+set(Fighandle, 'Position', [0, 0, 1000, 1000]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+xplot=floor(sqrt(length(GoodBetas_select)));yplot=ceil(length(GoodBetas_select)/xplot);
+yplot=1;xplot=8;
+for j=1:size(Planes_perFish,2)
+    subplot(xplot,yplot,j);
+    for i=1:size(Planes_perFish,1)   
+        histogram(Planes_perFish{i, j},[0:20:300]);hold on;
+    end
+    hold off;
+end
+
+Planes_KStest=zeros(3,length(GoodBetas_select),length(GoodBetas_select));
+for i=1:length(GoodBetas_select)
+    for j=1:length(GoodBetas_select)
+        [Planes_KStest(1,i,j),Planes_KStest(2,i,j),Planes_KStest(3,i,j)] = kstest2(GoodClusters_goodmembers(i).plane,GoodClusters_goodmembers(j).plane);        
+    end
+end
+clearvars i j
+Planes_KS_pvalues=triu(squeeze(Planes_KStest(2,:,:)));Planes_KS_pvalues(Planes_KS_pvalues==0)=nan;
+[pVals_KS KS_idx]=sort(Planes_KS_pvalues(:));
+Multiple_comparison=((length(GoodBetas_select)-1)^2+(length(GoodBetas_select)-1))/2;
+pval=0.05;
+for i=1:length(pVals_KS)
+    if pVals_KS(i) >= pval/(Multiple_comparison-(i-1))
+        break
+    end
+end
+pVals_KS(i:end)=nan;
+KS_idx(isfinite(pVals_KS))=[];
+Planes_KS_pvalues(KS_idx)=1;

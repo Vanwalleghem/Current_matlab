@@ -109,13 +109,23 @@ flow(13:end,1:1401)=0;
 
 Model_LR=[];
 parfor i=1:size(ZS,1)
-    mdl=stepwiselm(flow',ZS(i,:),'Upper','linear','Intercept',false,'Criterion','bic','verbose',0);
+    %mdl=stepwiselm(flow',ZS(i,:),'Upper','linear','Intercept',false,'Criterion','bic','verbose',0);
+    mdl=fitlm(flow',ZS(i,:));
     Model_LR(i).coef=mdl.Coefficients;
-    Model_LR(i).MSE=mdl.MSE;
+    %Model_LR(i).MSE=mdl.MSE;
     %Model_LR(i).Fitted=mdl.Fitted;
     Model_LR(i).rsquared=mdl.Rsquared.Adjusted;
 end
 
-idx_rsq_sort=find([Model_LR.rsquared]>0.1 & [Model_LR.rsquared]<1);
+idx_rsq_sort=find([Model_LR.rsquared]>0.2 & [Model_LR.rsquared]<1);
 ZS_sort=ZS(idx_rsq_sort,:);
 figure;imagesc(ZS_sort,[-1 4]);colormap hot
+
+options = statset('UseParallel',1); [idxKmeans_ZS_rsq Cmap_ZS_rsq]=kmeans(ZS(idx_rsq_sort,:),10,'Options',options,'Distance','cityblock','Replicates',5,'MaxIter',1000,'Display','final');
+figure;imagesc(Cmap_ZS_rsq);
+
+figure;
+for i=1:size(Cmap_ZS_rsq,1)
+    plot(Cmap_ZS_rsq(i,:));
+    pause
+end
