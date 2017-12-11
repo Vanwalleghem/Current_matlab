@@ -297,3 +297,19 @@ figure;
 for i=1:30
     plot(Cmap_ZS2_pred(i,:));hold on;plot(NewFlow3);pause
 end
+
+figure;
+plot(MeanByCoef(:,find(Flow_profile2(20:end)==5))');
+figure;
+imagesc(MeanByCoef(:,find(Flow_profile2(20:end)==5))');
+figure;
+imagesc(MeanByCoef(:,find(Flow_profile2(20:end)==10))');
+figure;
+imagesc(MeanByCoef(:,find(Flow_profile2(20:end)==-5))');
+figure;
+imagesc(MeanByCoef(:,find(Flow_profile2(20:end)==-10))');
+
+
+for i=1:8
+    plot(MeanByCoef
+end

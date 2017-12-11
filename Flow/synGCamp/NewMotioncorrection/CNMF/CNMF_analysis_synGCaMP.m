@@ -69,8 +69,7 @@ parfor i=1:size(ZS,1)
     model_ZS(i).Fitted=mdl.Fitted;
     model_ZS(i).rsquared=mdl.Rsquared.Adjusted;
 end
-
-Threshold=0.15;
+Threshold=0.1;
 idx_rsq=find([model_ZS.rsquared]>Threshold);
 
 options = statset('UseParallel',1); [idxKmeans_s Cmap_s]=kmeans(ZS_select,5,'Options',options,'Replicates',5,'MaxIter',1000,'Display','final');
@@ -145,7 +144,7 @@ GoodClusters_goodmembers(i).STD=std(GoodClusters_goodmembers(i).ZS,1,1);
 idx=find(idxKmeans_s==GoodBetas(i));
 idx=idx(find(GoodClusterData(i).CorrCoef>=Threshold));
 idxKmeans_ZS_goodmembers(idx)=GoodBetas(i);
-%GoodClusters_goodmembers(i).Fish=idx_Fish(idx);
+%GoodClusters_goodmembers(i).Fish=idx_fish(idx);
 end
 
 All_ROIs=[];
@@ -184,7 +183,7 @@ filename=MatFiles(Start).name;
 
 %colors = [1,0,0;0,1,0;0,0,1;1,0.600000000000000,0;1,0,0.7];
 colors = distinguishable_colors(length(GoodBetas),[1 1 1; 0 0 0]);
-%colors = colors*256;
+colors = colors*256;
 for idx=Start:length(MatFiles)
     filename=MatFiles(idx).name;
     ROIsNb=[];ClusterNb=[];
@@ -235,4 +234,83 @@ for i=GoodBetas
     counter=counter+1;
 end
 clearvars idx i temp tempFileNb fileNb AVG_files filename image counter Numbers image2 image3 k ROI ROIs ROIsNb Start tempROIsNb name imagename tempidx Raster
+
+GoodBetas_select=GoodBetas([4 1 5 2 3]);
+back=[55 255 455];
+fwd=[155 355 555];
+StimLength=100;
+DS_raw=NaN(length(unique(idx_fish)),3,2,length(GoodBetas_select));counter2=1;
+for j=GoodBetas_select
+    idx_temp=find(idxKmeans_final==j);
+    idx_fish_temp=idx_fish(idx_temp);
+    counter=1;
+    for fish=(unique(idx_fish)')
+        if find(idx_fish_temp==fish)
+            tempPlot=mean(ZS(idx_temp(find(idx_fish_temp==fish)),:),1);
+            BackPlot=zeros(3,StimLength);
+            FwdPlot=zeros(3,StimLength);
+            for i=1:3
+                BackPlot(i,:)=tempPlot(back(i):back(i)+99);
+                FwdPlot(i,:)=tempPlot(fwd(i):fwd(i)+99);
+            end
+            RespBWD=max(BackPlot,[],2);RespBWD=RespBWD+abs(min(RespBWD));
+            RespFWD=max(FwdPlot,[],2);RespFWD=RespFWD+abs(min(RespFWD));
+            DS_raw(counter,:,1,counter2)=RespBWD;
+            DS_raw(counter,:,2,counter2)=RespFWD;
+        end
+        counter=counter+1;
+    end
+    counter2=counter2+1;
+end
+
+DSI=zeros(length(unique(idx_fish)),length(GoodBetas_select),2);
+for i=1:size(DSI,1)
+    for j=1:size(DSI,2)
+        RespFWD=DS_raw(i,:,2,j);
+        RespBWD=DS_raw(i,:,1,j);
+        DSI(i,j,1)=nanmean((RespFWD-RespBWD)./(RespFWD+RespBWD));
+        DSI(i,j,2)=nanstd((RespFWD-RespBWD)./(RespFWD+RespBWD));
+    end
+end
+
+Fighandle=figure;
+set(Fighandle, 'Position', [0, 0, 1280, 1024]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+counter=1;counter2=1;xplot=length(GoodBetas_select);yplot=4;
+back=[55 255 455];
+fwd=[155 355 555];
+StimLength=100;
+x = linspace(0.2,StimLength/5,StimLength);
+for i=GoodBetas_select
+    subplot(xplot,yplot,counter2);
+    imagesc(GoodClusters_goodmembers(counter).ZS,[-0.5 4]);colormap hot
+    tempPlot=GoodClusters_goodmembers(counter).mean;
+    BackPlot=zeros(3,StimLength);
+    FwdPlot=zeros(3,StimLength);
+    for j=1:3
+        BackPlot(j,:)=tempPlot(back(j):back(j)+99);
+        FwdPlot(j,:)=tempPlot(fwd(j):fwd(j)+99);
+    end
+    temp=mean(BackPlot,1);std_temp=std(BackPlot,1,1);
+    subplot(xplot,yplot,counter2+1);
+    H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 4]);
+    H.mainLine.Color=colors(counter,:);
+    H.patch.FaceColor=colors(counter,:);
+    H.edge(1).Color=colors(counter,:);
+    H.edge(2).Color=colors(counter,:);
+    temp=mean(FwdPlot,1);std_temp=std(FwdPlot,1,1);
+    subplot(xplot,yplot,counter2+2);
+    H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 4]);
+    H.mainLine.Color=colors(counter,:);
+    H.patch.FaceColor=colors(counter,:);
+    H.edge(1).Color=colors(counter,:);
+    H.edge(2).Color=colors(counter,:);    
+    subplot(xplot,yplot,counter2+3);
+    %bar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),'FaceColor',colors(counter,:)/256);hold on; ylim([-1 1]);
+    scatter(zeros(1,length(unique(idx_fish)))+1,DSI(:,counter,1),[],colors(counter,:));hold on;ylim([-1.1 1.1]);set(gca,'xtick',[]);set(gca,'xcolor','none')
+    errorbar(nanmean(DSI(:,counter,1)),nanstd(DSI(:,counter,1)),'.','LineWidth',2,'MarkerEdgeColor',colors(counter,:),'MarkerFaceColor',colors(counter,:),'Color',colors(counter,:));view([90 -90]);hold off    
+    counter=counter+1;
+    counter2=counter2+yplot;
+end
+
 

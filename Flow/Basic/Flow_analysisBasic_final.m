@@ -250,14 +250,16 @@ for i=GoodBetas_select
 end
 
 Fighandle=figure;
-set(Fighandle, 'Position', [0, 0, 500, 1000]);
+set(Fighandle, 'Position', [0, 0, 1280, 1024]);
 set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
-counter=1;counter2=1;xplot=length(GoodBetas_select);yplot=3;
+counter=1;counter2=1;xplot=length(GoodBetas_select);yplot=4;
 back=[55 255 455];
 fwd=[155 355 555];
 StimLength=100;
 x = linspace(0.2,StimLength/5,StimLength);
 for i=GoodBetas_select
+    subplot(xplot,yplot,counter2);
+    imagesc(GoodClusters_goodmembers(counter).ZS,[-0.5 4]);colormap hot
     tempPlot=GoodClusters_goodmembers(counter).mean;
     BackPlot=zeros(3,StimLength);
     FwdPlot=zeros(3,StimLength);
@@ -266,27 +268,27 @@ for i=GoodBetas_select
         FwdPlot(j,:)=tempPlot(fwd(j):fwd(j)+99);
     end
     temp=mean(BackPlot,1);std_temp=std(BackPlot,1,1);
-    subplot(xplot,yplot,counter2);
-    H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
-    H.mainLine.Color=colors(counter,:)/256;
-    H.patch.FaceColor=colors(counter,:)/256;
-    H.edge(1).Color=colors(counter,:)/256;
-    H.edge(2).Color=colors(counter,:)/256;cl
-    temp=mean(FwdPlot,1);std_temp=std(FwdPlot,1,1);
     subplot(xplot,yplot,counter2+1);
     H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
     H.mainLine.Color=colors(counter,:)/256;
     H.patch.FaceColor=colors(counter,:)/256;
     H.edge(1).Color=colors(counter,:)/256;
-    H.edge(2).Color=colors(counter,:)/256;    
+    H.edge(2).Color=colors(counter,:)/256;
+    temp=mean(FwdPlot,1);std_temp=std(FwdPlot,1,1);
     subplot(xplot,yplot,counter2+2);
+    H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
+    H.mainLine.Color=colors(counter,:)/256;
+    H.patch.FaceColor=colors(counter,:)/256;
+    H.edge(1).Color=colors(counter,:)/256;
+    H.edge(2).Color=colors(counter,:)/256;    
+    subplot(xplot,yplot,counter2+3);
     RespBWD=max(BackPlot,[],2);RespBWD=RespBWD+abs(min(RespBWD));
     RespFWD=max(FwdPlot,[],2);RespFWD=RespFWD+abs(min(RespFWD));
     %bar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),'FaceColor',colors(counter,:)/256);hold on; ylim([-1 1]);
     scatter(zeros(1,13)+1,DSI(:,counter,1),[],colors(counter,:)/256);hold on;ylim([-1.1 1.1]);set(gca,'xtick',[]);set(gca,'xcolor','none')
     errorbar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),nanstd(DSI(:,counter,1)),'.','LineWidth',2,'MarkerEdgeColor',colors(counter,:)/256,'MarkerFaceColor',colors(counter,:)/256,'Color',colors(counter,:)/256);view([90 -90]);hold off    
     counter=counter+1;
-    counter2=counter2+3;
+    counter2=counter2+yplot;
 end
 
 back=[55 255 455];
@@ -423,3 +425,4 @@ end
 pVals_KS(i:end)=nan;
 KS_idx(isfinite(pVals_KS))=[];
 Planes_KS_pvalues(KS_idx)=1;
+
