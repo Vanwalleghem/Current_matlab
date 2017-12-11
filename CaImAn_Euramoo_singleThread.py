@@ -31,10 +31,9 @@ tifffile.imsave(fnames[0][:-4]+'_mean.tif',np.mean(Y,axis=2))
 #fname_new=cm.save_memmap_each(fnames, dview=dview,base_name=base_name, resize_fact=(1, 1, downsample_factor), remove_init=0,idx_xy=idx_xy )
 #fname_new=cm.save_memmap_join(fname_new,base_name=base_name+'Yr', n_chunks=n_processes, dview=dview)
 nb_back=1
-options = cnmf.utilities.CNMFSetParms(Y,n_processes,p=p,gSig=gSig,K=K,ssub=1,tsub=1,nb=nb_back)
+options = cnmf.utilities.CNMFSetParms(Y,n_processes,p=p,gSig=gSig,K=K,ssub=2,tsub=1,nb=nb_back)
 #options['preprocess_params']['max_num_samples_fft']=10000
 Cn = cm.local_correlations(Y)
-savemat(fnames_orig[0][:-4]+'_output_correlation.mat',mdict={'Correlation_image':Cn})
 Yr,sn,g,psx = cnmf.pre_processing.preprocess_data(Yr,dview=dview,**options['preprocess_params'])
 Ain,Cin, b_in, f_in, center=cnmf.initialization.initialize_components(Y, **options['init_params'])
 Ain,b_in,Cin, f_in = cnmf.spatial.update_spatial_components(Yr, Cin, f_in, Ain, sn=sn, dview=dview,**options['spatial_params'])
@@ -47,13 +46,10 @@ if Cin.size > 0:
 	options['temporal_params']['p'] = p # set it back to original value to perform full deconvolution	
 	Cin,Ain,b_in,f_in,S,bl,c1,neurons_sn,g,YrA = cnmf.temporal.update_temporal_components(Yr,Ain,b_in,Cin,f_in,bl=None,c1=None,sn=None,g=None,**options['temporal_params'])		
 	traces=Cin+YrA
-	tB = np.minimum(-2,np.floor(-5./30*final_frate))
-	tA = np.maximum(5,np.ceil(25./30*final_frate))
-	fitness_raw, fitness_delta, erfc_raw,erfc_delta,r_values,num_significant_samples = evaluate_components(Y,traces,Ain,Cin,bl,f_in, final_frate, remove_baseline = True, N = 5, robust_std = False, Athresh = 0.1, Npeaks = 5, thresh_C = 0.2)	
-    
+	fitness_raw, fitness_delta, erfc_raw,erfc_delta,r_values,num_significant_samples = evaluate_components(Y,traces,Ain,Cin,bl,f_in, final_frate, remove_baseline = True, N = 5, robust_std = False, Athresh = 0.1, Npeaks = 5, thresh_C = 0.2)	    
 	idx_components_r=np.where(r_values>=.6)[0]
-	idx_components_raw=np.where(fitness_raw<-40)[0]        
-	idx_components_delta=np.where(fitness_delta<-20)[0]
+	idx_components_raw=np.where(fitness_raw<-30)[0]        
+	idx_components_delta=np.where(fitness_delta<-10)[0]
 	idx_components=np.union1d(idx_components_r,idx_components_raw)
 	#C_dff = extract_DF_F(Yr, Ain.tocsc()[:, idx_components], Cin[idx_components, :], bl[idx_components], quantileMin = 8, frames_window = 200, dview = dview)
 	idx_components=np.union1d(idx_components,idx_components_delta)  	
