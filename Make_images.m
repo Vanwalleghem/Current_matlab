@@ -34,6 +34,7 @@ max_Beta1=max(max(max(Betas(:,:,:,2))));
 min_Beta2=min(min(min(Betas(:,:,:,3))));
 max_Beta2=max(max(max(Betas(:,:,:,3))));
 
+outputFileName=('Itia_test.tif');
 for Plane=1:size(rsquared,1)
     image_avg=double(imData(:,:,Plane));image_avg=image_avg/max(max(image_avg));image_avg=image_avg*128;
     image_avg=repmat(image_avg,1,1,3);image_avg=uint8(image_avg);
@@ -54,6 +55,15 @@ end
 
 figure;
 for Plane=1:size(rsquared,1)
-    imagesc(squeeze(rsquared(Plane,:,:)),[0 0.1]);colormap jet;
+    subplot(1,2,1);imagesc(squeeze(rsquared(Plane,:,:)),[0.05 0.2]);colormap jet;
+    subplot(1,2,2);imagesc(squeeze(rsq2(Plane,:,:)),[0.05 0.2]);colormap jet;
     pause;
+end
+
+outputFileName=('Itia_test.tif');
+for Plane=1:size(rsquared,1)
+    image_3=squeeze(rsquared(Plane, :, :));
+    image_3(image_3<0.05)=0;
+    image_3=image_3*128;image_3=uint8(image_3);    
+    imwrite(image_3, outputFileName, 'WriteMode', 'append');
 end

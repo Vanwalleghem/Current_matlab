@@ -227,10 +227,18 @@ coefficients_predict=coefficients_all_pred(idx_rsq_predict,:);
 
 [~, max_coef]=max(coefficients_predict,[],2);
 
+
 MeanByCoef=zeros(max(max_coef),size(ZS2,2));
 for i=1:max(max_coef)
     MeanByCoef(i,:)=mean(ZS2_predict(find(max_coef==i),:),1);
 end
+
+options = statset('UseParallel',1); 
+Prediction_map={};
+for i=1:max(max_coef)
+    [Prediction_map{i,1},Prediction_map{i,2}]=kmeans(ZS2_predict(find(max_coef==i),:),5,'Options',options,'Replicates',3,'MaxIter',1000,'Display','final');
+end
+
 
 figure;
 for i=1:max(max_coef)
@@ -309,7 +317,31 @@ imagesc(MeanByCoef(:,find(Flow_profile2(20:end)==-5))');
 figure;
 imagesc(MeanByCoef(:,find(Flow_profile2(20:end)==-10))');
 
+idx_slow=find(Flow_profile2(20:end)==5);
+idx_fast=find(Flow_profile2(20:end)==10);
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1200, 900]);counter=1;yplot=8;
+for i=1:8
+    subplot(yplot,1,i);
+    plot(MeanByCoef(i,idx_slow));hold on;plot(MeanByCoef(i,idx_fast));
+end
+
+idx_slow_breaks=find(diff(idx_slow)>1);
+idx_fast_breaks=find(diff(idx_fast)>1);
 
 for i=1:8
-    plot(MeanByCoef
+    for j=1:length(idx_slow_breaks)
+        if j==1
+            slow_fwd{i,j}=MeanByCoef(i,idx_slow(1):idx_slow(idx_slow_breaks(j)));
+        else
+            slow_fwd{i,j}=MeanByCoef(i,idx_slow(idx_slow_breaks(j-1)+1):idx_slow(idx_slow_breaks(j)));
+        end
+    end
+end
+    
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1200, 900]);counter=1;yplot=length(GoodBetas);
+for i=[1 5]
+    subplot(2,1,counter);plot(Cmap_ZS_rsq(i,:));ylim([-1 7]);
+    counter=counter+1;
 end

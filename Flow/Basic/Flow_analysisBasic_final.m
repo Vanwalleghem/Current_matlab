@@ -40,7 +40,26 @@ for i = 2:length(MatFiles)
 end
 clearvars GC C S F N name i GS;
 
+MatFiles=dir('*matlab*.mat');
+name=strcat(MatFiles(1).name);
+Noise=load(name, 'Noise');
+Noise=Noise.Noise;
+Fitness=load(name, 'idx_components');
+Fitness=Fitness.idx_components+1;
+GoodNoise=Noise(Fitness,:);
+for i = 2:length(MatFiles)
+    name=strcat(MatFiles(i).name);
+    N=load(name, 'Noise');
+    N=N.Noise;
+    F=load(name, 'idx_components');
+    F=F.idx_components+1;
+    GN=N(F,:);
+    GoodNoise=vertcat(GoodNoise,GN);
+end
+clearvars GC C S F N name i GS;
+
 ZS=zscore(GoodCalcium,1,2);
+ZS2=zscore(GoodCalcium+GoodNoise,1,2);
 x = linspace(0.2,size(ZS,2)/5,size(ZS,2));y = linspace(1,size(ZS,1),size(ZS,1));
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1200, 900]);

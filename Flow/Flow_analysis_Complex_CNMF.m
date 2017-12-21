@@ -74,18 +74,19 @@ for i=1:length(MatFiles)
 end
 clearvars i Fish Plane name counter
 
-GMModels = {};
-options = statset('MaxIter',500);
-for k = 81:130
-    GMModels{k} = fitgmdist(temp,k,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
-    BIC(k)= GMModels{k}.BIC;
-end
-[minBIC,numComponents] = min(BIC);
-numComponents
-BIC_smooth=smooth(BIC');
-figure;plot(BIC_smooth);
+% GMModels = {};
+% options = statset('MaxIter',500);
+% for k = 81:130
+%     GMModels{k} = fitgmdist(temp,k,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
+%     BIC(k)= GMModels{k}.BIC;
+% end
+% [minBIC,numComponents] = min(BIC);
+% numComponents
+% BIC_smooth=smooth(BIC');
+% figure;plot(BIC_smooth);
 
-GMModel=fitgmdist(ZS,78,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
+% options = statset('MaxIter',500,'UseParallel',1);
+% GMModel=fitgmdist(ZS2,78,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
 
 x = linspace(0.2,size(ZS,2)/5,size(ZS,2));
 Fighandle=figure;
@@ -240,7 +241,8 @@ Flow_profile2=zeros(1,length(Flow_profile)*5);
 for i=1:length(Flow_profile)
     Flow_profile2(5*i:5*i+4)=Flow_profile(i);
 end
-Flow_profile2=interp(Flow_profile,5);Flow_profile2=int8(Flow_profile2);Flow_profile2(Flow_profile2==1)=0;Flow_profile2(Flow_profile2==-1)=0;Flow_profile2(Flow_profile2==6)=5;Flow_profile2(Flow_profile2==-6)=-5;Flow_profile2(Flow_profile2==11)=10;Flow_profile2(Flow_profile2==-11)=-10;Flow_profile2(Flow_profile2==-4)=-5;Flow_profile2(Flow_profile2==4)=5;Flow_profile2(Flow_profile2==2)=0;
+Flow_profile2=Flow_profile2(1:2500);
+%Flow_profile2=interp(Flow_profile,5);Flow_profile2=int8(Flow_profile2);Flow_profile2(Flow_profile2==1)=0;Flow_profile2(Flow_profile2==-1)=0;Flow_profile2(Flow_profile2==6)=5;Flow_profile2(Flow_profile2==-6)=-5;Flow_profile2(Flow_profile2==11)=10;Flow_profile2(Flow_profile2==-11)=-10;Flow_profile2(Flow_profile2==-4)=-5;Flow_profile2(Flow_profile2==4)=5;Flow_profile2(Flow_profile2==2)=0;
 
 
 Fighandle=figure;
