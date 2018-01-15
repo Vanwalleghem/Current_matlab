@@ -18,7 +18,7 @@ clearvars i Fish Plane name counter
 figure;histogram(idx_Types)
 
 %MatFiles=dir('*analysis_matlab.mat');
-MatFiles=dir('*ELO_IRO*analysis_matlab.mat');
+MatFiles=dir('*analysis_matlab.mat');
 name=strcat(MatFiles(1).name);
 Calcium=load(name, 'DenoisedTraces');
 Calcium=Calcium.DenoisedTraces;
@@ -84,6 +84,9 @@ idx_fish_both=find(idx_fish_both==1);
 ZS=ZS(idx_fish_both,:);
 idx_Fish=idx_Fish(idx_fish_both);
 idx_Plane=idx_Plane(idx_fish_both);
+
+MatFiles.name
+
 
 Stimuli=zeros(3,size(ZS,2));
 start=42;
@@ -153,14 +156,14 @@ subplot(1,2,1);imagesc(ZS(idx_weird,:),[-1 3]);colormap hot
 subplot(1,2,2);imagesc(ZS(idx_weird2,:),[-1 3]);colormap hot
 
 idxKmeans_final=zeros(size(ZS,1),1);
-idxKmeans_final(idx_rsq)=idxKmeans_ZS_rsq;
+idxKmeans_final(idx_rsq)=idxKmeans_ZS_rsq_10;
 
 temp=unique(idx_Fish);
 for i=1:length(temp);
     idx_Fish(find(idx_Fish==temp(i)))=i;
 end
 
-GoodBetas=GoodBetas([1 5 11 17]);
+GoodBetas=GoodBetas_10([6 4 1 9 2 8]);
 
 counter=1;
 x = linspace(0.5,size(ZS,2)/2,size(ZS,2));
@@ -177,4 +180,87 @@ for i=GoodBetas
     counter=counter+4;
 end
 
-rsq_tsne=tsne(ZS_rsq,idxKmeans_ZS_rsq_15,3,100);
+All_ROIs=[];
+ROIs_idx=[];
+for i = 1:length(MatFiles)
+    name=strcat(MatFiles(i).name);
+    Rs=load(name, 'ROIs');
+    Rs=Rs.ROIs;
+    F=load(name, 'idx_components');
+    F=F.idx_components+1;
+    Rs=Rs(:,F);
+    All_ROIs{i}=Rs;
+    if i==1
+        ROIs_idx(i)=length(F);
+    else
+        ROIs_idx(i)=ROIs_idx(i-1)+length(F);
+    end
+end
+clearvars GC C S F N name i;
+
+%All_ROIs=All_ROIs(idx_fish_both,:);
+
+Numbers=[0 [ROIs_idx]];
+temp=[];
+counter=1;
+for i=GoodBetas
+    temp{counter}=find(idxKmeans_final==i);
+    %tempidx=find(idxKmeans==idx);
+    %temp{counter}=GoodClusters_goodmembers(counter).idx;
+    counter=counter+1;    
+end
+
+colors = distinguishable_colors(length(GoodBetas),[1 1 1; 0 0 0]);
+colors = colors*256;
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1400, 500]);x = linspace(0.5,size(ZS,2)/2,size(ZS,2));
+counter=1;counter2=1;xplot=1;yplot=length(GoodBetas);%yplot=ceil(length(GoodBetas)/xplot);
+for i=GoodBetas
+    idx_temp=find(idxKmeans_final==i);
+    subplot(xplot,yplot,counter);plot(x,mean(ZS(idx_temp,:),1),'color',colors(counter2,:)/256);axis([0 200 -2 5]);
+    start=30;    
+    counter=counter+1;
+    counter2=counter2+1;
+end
+
+
+for idx=1:length(MatFiles)
+    filename=MatFiles(idx).name;
+    ROIsNb=[];ClusterNb=[];
+    %for k = 1 : length(temp)
+    for k = 1 : length(temp)
+        tempROIsNb=find([temp{k}]<=Numbers(idx+1));
+        if tempROIsNb            
+            ROIsNb=[ROIsNb; temp{k}(tempROIsNb)];
+            temp{k}(tempROIsNb)=[];
+            ClusterNb=[ClusterNb ; repmat(k,length(tempROIsNb),1)];
+        end
+    end
+    if ROIsNb
+        imagename=regexp(filename,'_output_analysis','split');
+        %imagename=regexp(imagename,'_output_analysis_matlab2.mat','split');
+        imagename=strcat(imagename{1},'_mean.tif');
+        image=double(imread(imagename));image=image/max(max(image));image=image*128;
+        image=uint8(image);
+        image2=zeros(size(image(:,:,1)));
+        image3=repmat(image,1,1,3);
+        ROIs=All_ROIs{idx};       
+        ROIsNb=ROIsNb-Numbers(idx);
+        ROIs=ROIs(:,ROIsNb);
+        for k = 1 : size(ROIs,2)
+            image2=zeros(size(image(:,:,1)));
+            ROI=full(reshape(ROIs(:,k),size(image,1),size(image,2)));            
+            image2=image2+ROI;image2=(image2/max(max(image2)));image2=uint8(image2);
+            for j=1:3
+                image3(:,:,j)=image3(:,:,j)+image2*colors(ClusterNb(k),j);
+            end
+        end
+        %image3(:,:,3)=image;
+            name=strcat('_Kmeans_',imagename(4:end));
+    imwrite(image3,name,'tif');
+    end
+    %image3=uint8(image3);
+
+end
+clearvars idx i temp tempFileNb fileNb AVG_files filename image counter Numbers image2 image3 k ROI ROIs ROIsNb Start tempROIsNb name imagename tempidx Raster
+

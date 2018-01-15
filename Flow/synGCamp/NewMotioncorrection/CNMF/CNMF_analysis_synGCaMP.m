@@ -3,8 +3,8 @@ name=strcat(MatFiles(1).name);
 Calcium=load(name, 'DenoisedTraces');
 Calcium=Calcium.DenoisedTraces;
 MatFiles(1).number=size(Calcium,1);
-Spikes=load(name, 'Spikes');
-Spikes=Spikes.Spikes;
+%Spikes=load(name, 'Spikes');
+%Spikes=Spikes.Spikes;
 Noise=load(name, 'Noise');
 Noise=Noise.Noise;
 %DF=load(name, 'dFonF');
@@ -12,7 +12,7 @@ Noise=Noise.Noise;
 Fitness=load(name, 'idx_components');
 Fitness=Fitness.idx_components+1;
 GoodCalcium=Calcium(Fitness,:);
-GoodSpikes=Spikes(Fitness,:);
+%GoodSpikes=Spikes(Fitness,:);
 GoodNoise=Noise(Fitness,:);
 %GoodDF=DF(Fitness,:);
 MatFiles(1).GoodNumber=length(Fitness);
@@ -23,8 +23,8 @@ for i = 2:length(MatFiles)
     %     if i==3
     %         C=[C(:,1) C(:,1) C(:,1:58)];
     %     end
-    S=load(name, 'Spikes');
-    S=S.Spikes;
+    %S=load(name, 'Spikes');
+    %S=S.Spikes;
     N=load(name, 'Noise');
     N=N.Noise;
     F=load(name, 'idx_components');
@@ -32,35 +32,35 @@ for i = 2:length(MatFiles)
     %D=load(name, 'dFonF');
     %D=D.dFonF;
     GC=C(F,:);
-    GS=S(F,:);
+    %GS=S(F,:);
     %GD=D(F,:);
     
     GN=N(F,:);
     if size(C,2)==750
-        Calcium=vertcat(Calcium,C(:,51:705));
-        Spikes=vertcat(Spikes,S(:,51:705));
+        Calcium=vertcat(Calcium,C(:,73:73+654));
+        %Spikes=vertcat(Spikes,S(:,51:705));
         Fitness=horzcat(Fitness,F);
-        Noise=vertcat(Noise,N(:,51:705));
-        GoodCalcium=vertcat(GoodCalcium,GC(:,51:705));
-        GoodNoise=vertcat(GoodNoise,GN(:,51:705));
+        Noise=vertcat(Noise,N(:,73:73+654));
+        GoodCalcium=vertcat(GoodCalcium,GC(:,73:73+654));
+        GoodNoise=vertcat(GoodNoise,GN(:,73:73+654));
         %GoodDF=vertcat(GoodDF,GD);
-        GoodSpikes=vertcat(GoodSpikes,GS(:,51:705));
+        %GoodSpikes=vertcat(GoodSpikes,GS(:,51:705));
     else
         Calcium=vertcat(Calcium,C);
-        Spikes=vertcat(Spikes,S);
+        %Spikes=vertcat(Spikes,S);
         Fitness=horzcat(Fitness,F);
         Noise=vertcat(Noise,N);
         GoodCalcium=vertcat(GoodCalcium,GC);
         GoodNoise=vertcat(GoodNoise,GN);
         %GoodDF=vertcat(GoodDF,GD);
-        GoodSpikes=vertcat(GoodSpikes,GS);
+        %GoodSpikes=vertcat(GoodSpikes,GS);
     end
     
     MatFiles(i).number=size(Calcium,1);
     MatFiles(i).GoodNumber=MatFiles(i-1).GoodNumber+length(F);
 end
 clearvars GC C S F N name i GS GN N;
-ZS=zscore(GoodCalcium,1,2);
+ZS=zscore(GoodCalcium+GoodNoise,1,2);
 
 parfor i=1:size(ZS,1)
     mdl=stepwiselm(flow',ZS(i,:),'Upper','linear','Intercept',false,'Criterion','bic','verbose',0);

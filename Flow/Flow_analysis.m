@@ -269,6 +269,24 @@ while counter<=size(Merged_DF,1) % can also be for counter=1:size(Dataset,1)
 end
 clearvars i j idx_max counter max_corr temp
 
+coefficients={};
+for idx=1:length(model_DF_Thr5)
+    coef=[model_DF_Thr5(idx).coef];
+    temp=coef.Properties.RowNames;temp=regexp(temp,'x(\d+)','tokens');
+    if ~isempty(temp)
+        %temp=[temp{:}];temp=[temp{:}];temp=[temp{:}];%temp=str2num(temp);
+        for coef_idx=2:height(coef)
+            if coef.pValue(coef_idx)<0.05
+                coefficients{idx,str2num(temp{coef_idx}{1}{1})}=coef.Estimate(coef_idx);
+            end
+        end
+    end
+end
+idxempty=cellfun('isempty',coefficients);
+coefficients(idxempty)={0};
+clearvars idxempty idx coef_idx coef temp
+coefficients=cell2mat(coefficients);
+
 numMerged=zeros(numel(MergedIDX),1);
 for i=1:numel(MergedIDX)
     numMerged(i)=numel(MergedIDX{i});
@@ -635,3 +653,4 @@ while counter<=size(Merged_DF,1) % can also be for counter=1:size(Dataset,1)
     progressbar(counter/size(Merged_DF,1)); % can be skipped if you haven't progressbar installed
 end
 clearvars i j idx_max counter max_corr temp
+

@@ -217,3 +217,94 @@ for i=GoodBetas_select
     subplot(xplot,yplot,counter);plot(mean(ZS_both(idx_temp(idx_exterior),:),1));hold on;plot(mean(ZS_both(idx_temp(idx_center),:),1));hold off;
     counter=counter+1;
 end
+
+GoodBetas=GoodBetas_rsq([1 12 2 3 14 17 7 4 5 11 15]);
+
+idxKmeans_final=zeros(size(ZS,1),1);
+idxKmeans_final(idx_rsq)=idxKmeans_ZS_rsq;
+
+
+counter=1;
+x = linspace(0.5,size(ZS,2)/2,size(ZS,2));
+rows=length(GoodBetas);
+counter=1;
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1300, 900]);xplot=4;
+for i=GoodBetas
+    idx_temp=find(idxKmeans_final==i);
+    subplot(rows,xplot,counter);plot(mean(ZS(idx_temp,:),1));axis([0 420 -2 5]);
+    subplot(rows,xplot,counter+1);imagesc(ZS(idx_temp,:),[-2 5]);
+    subplot(rows,xplot,counter+2);histogram(idx_Plane(idx_temp));    
+    subplot(rows,xplot,counter+3);histogram(idx_Fish(idx_temp));%h = gca;h.XTickLabel={'1','2'};
+    counter=counter+4;
+end
+
+All_ROIs=[];
+ROIs_idx=[];
+for i = 1:length(MatFiles)
+    name=strcat(MatFiles(i).name);
+    Rs=load(name, 'ROIs');
+    Rs=Rs.ROIs;
+    F=load(name, 'idx_components');
+    F=F.idx_components+1;
+    Rs=Rs(:,F);
+    All_ROIs{i}=Rs;
+    if i==1
+        ROIs_idx(i)=length(F);
+    else
+        ROIs_idx(i)=ROIs_idx(i-1)+length(F);
+    end
+end
+clearvars GC C S F N name i;
+
+%All_ROIs=All_ROIs(idx_fish_both,:);
+
+Numbers=[0 [ROIs_idx]];
+temp=[];
+counter=1;
+for i=GoodBetas
+    temp{counter}=find(idxKmeans_final_goodmember==i);
+    %tempidx=find(idxKmeans==idx);
+    %temp{counter}=GoodClusters_goodmembers(counter).idx;
+    counter=counter+1;    
+end
+
+for idx=1:length(MatFiles)
+    filename=MatFiles(idx).name;
+    ROIsNb=[];ClusterNb=[];
+    %for k = 1 : length(temp)
+    for k = 1 : length(temp)
+        tempROIsNb=find([temp{k}]<=Numbers(idx+1));
+        if tempROIsNb            
+            ROIsNb=[ROIsNb temp{k}(tempROIsNb)];
+            temp{k}(tempROIsNb)=[];
+            ClusterNb=[ClusterNb ; repmat(k,length(tempROIsNb),1)];
+        end
+    end
+    if ROIsNb
+        imagename=regexp(filename,'_output_analysis','split');
+        %imagename=regexp(imagename,'_output_analysis_matlab2.mat','split');
+        imagename=strcat(imagename{1},'_mean.tif');
+        image=double(imread(imagename));image=image/max(max(image));image=image*128;
+        image=uint8(image);
+        image2=zeros(size(image(:,:,1)));
+        image3=repmat(image,1,1,3);
+        ROIs=All_ROIs{idx};       
+        ROIsNb=ROIsNb-Numbers(idx);
+        ROIs=ROIs(:,ROIsNb);
+        for k = 1 : size(ROIs,2)
+            image2=zeros(size(image(:,:,1)));
+            ROI=full(reshape(ROIs(:,k),size(image,1),size(image,2)));            
+            image2=image2+ROI;image2=(image2/max(max(image2)));image2=uint8(image2);
+            for j=1:3
+                image3(:,:,j)=image3(:,:,j)+image2*colors(ClusterNb(k),j);
+            end
+        end
+        %image3(:,:,3)=image;
+            name=strcat('_Kmeans_',imagename(4:end));
+    imwrite(image3,name,'tif');
+    end
+    %image3=uint8(image3);
+
+end
+clearvars idx i temp tempFileNb fileNb AVG_files filename image counter Numbers image2 image3 k ROI ROIs ROIsNb Start tempROIsNb name imagename tempidx Raster
