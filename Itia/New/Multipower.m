@@ -286,12 +286,13 @@ figure;plot(temp);
 options = statset('UseParallel',1); [idxKmeans_ZSAVG_rsq Cmap_ZSAVG_rsq]=kmeans(ZS_AVG(idx_rsq,:),30,'Options',options,'Distance','cityblock','Replicates',5,'MaxIter',1000,'Display','final');
 [Model_ZS,GoodBetas_ZS]=Test_Regress(Cmap_ZSAVG_rsq,Stimuli_AVG,idxKmeans_ZSAVG_rsq,0.4);
 
-idxKmeans_final=size(idxKmeans_ZS);
+idxKmeans_final=zeros(size(idxKmeans_ZS));
 %idxKmeans_final(idx_rsq)=idxKmeans_ZSAVG_rsq;
 idxKmeans_final(idx_rsq3)=idxKmeans_ZS_rsq3;
 
 %GoodBetas=GoodBetas_ZS([1 3 4 6 8 9 10]);
-GoodBetas=GoodBetas_ZS3([2 4 5 6 7]);
+%GoodBetas=GoodBetas_ZS3([2 4 5 6 7]);
+GoodBetas=GoodBetas_ZS3([4 5 7]);
 
 counter=1;
 framerate=4;
@@ -338,8 +339,8 @@ for i=1:numel(GoodClustersData)
 end
 
 
-GoodClusters_goodmembers=[];Threshold=0.3;
-idxKmeans_final_goodmember=zeros(size(idxKmeans_final));
+GoodClusters_goodmembers=[];Threshold=0.2;
+idxKmeans_final_goodmember=zeros(size(ZS));
 for i=1:length(GoodBetas)    
     idx_temp=find(idxKmeans_final==GoodBetas(i));
     corr_temp=zeros(size(idx_temp));
@@ -371,7 +372,8 @@ for i=GoodBetas
     counter2=counter2+1;
 end
 
-colors = distinguishable_colors(length(GoodBetas),[1 1 1; 0 0 0]);
+%colors = distinguishable_colors(length(GoodBetas),[1 1 1; 0 0 0]);
+colors = [1 0 0; 0 1 0; 0 1 1];
 colors = colors*256;
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1400, 500]);x = linspace(0.5,size(ZS_AVG,2)/2,size(ZS_AVG,2));
