@@ -89,12 +89,8 @@ end
         pause;
 end
 
-imageSizeX = size(Template,1);
-imageSizeY = size(Template,2);
-[columnsInImage rowsInImage] = meshgrid(1:imageSizeX, 1:imageSizeY);radius =1;
 Template2=repmat(Template,1,1,1,3);
 %for fish_nb=1:length(Fish_list)
-figure;xplot=3;yplot=length(ERO_fish);fish_counter=0;
 for fish_nb=ERO_fish    
     if iscell(Fish_list)
         Fish_name=Fish_list{fish_nb};
@@ -116,23 +112,33 @@ for fish_nb=ERO_fish
         numbersForROIs=[MatFiles(MatFiles_fish(1)-1).GoodNumber [MatFiles(MatFiles_fish).GoodNumber]];
     end
     GoodROIs=idxKmeans_final_goodmember(numbersForROIs(1):numbersForROIs(end)-1);
+    ROIs_temp=All_ROIs{MatFiles_fish(1)};
+    for i=2:length(MatFiles_fish)
+        ROIs_temp=horzcat(ROIs_temp,All_ROIs{MatFiles_fish(i)});
+    end     
     if find(GoodROIs>0)
         counter=1;
         for i=GoodBetas
-            idx_temp=find(GoodROIs==i);
-            subplot(yplot,xplot,fish_counter+counter);plot(mean(ZS(idx_temp+(numbersForROIs(1)-1),:),1));
+            idx_temp=find(GoodROIs==i);            
             if idx_temp
+                ROIs_temp2=reshape(full(ROIs_temp(:,idx_temp)),imageSizeY,imageSizeX,length(idx_temp));
                 for slice=1:size(Template2,3)
                     idx_slice=find(ROI_fish(idx_temp,3)==slice);
                     if idx_slice
                         for roi_nb=1:length(idx_slice)
+                            ROI_temp=uint16(squeeze(ROIs_temp2(:,:,idx_slice(roi_nb))));
+                            temp=regionprops(uint16(squeeze(ROI_temp))==max(max(ROI_temp)),'Centroid');
+                            Centroids=temp.Centroid;
                             xcoord=ROI_fish(idx_temp(idx_slice(roi_nb)),1);
                             ycoord=ROI_fish(idx_temp(idx_slice(roi_nb)),2);
-                            if xcoord>1 & ycoord>1
-                                circlePixels = (rowsInImage - ycoord).^2 + (columnsInImage - xcoord).^2 <= radius.^2;                                
+                            shift_x=xcoord-Centroids(1);
+                            shift_y=ycoord-Centroids(2);
+                            ROI_shifted=circshift(ROI_temp,[round(shift_y),round(shift_x)]);
+                            ROI_shifted=double(ROI_shifted')/double(max(max(ROI_shifted)));
+                            if xcoord>1 & ycoord>1                                
                                 for col=1:3
                                     image=squeeze(squeeze(Template2(:,:,slice,col)));
-                                    image(circlePixels')=colors(counter,col);
+                                    image(ROI_shifted>0.7)=((ROI_shifted(ROI_shifted>0.7)-0.2)/0.8)*colors(counter,col);                                    
                                     Template2(:,:,slice,col)=image;
                                 end
                             end
@@ -149,6 +155,6 @@ end
  for slice=1:size(Template2,3)
         image_temp=squeeze(Template2(:, :,slice,:));%image_temp=uint8(image_temp);
         %image=(image-min_score)/(max_score-min_score);image=image*256;image=uint16(image);
-        OutputName='Template_Multipower_ERO.tif';
+        OutputName='Template_Multipower_ERO_highThreshROI.tif';
         imwrite(image_temp, OutputName, 'WriteMode', 'append');
  end

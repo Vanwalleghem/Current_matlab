@@ -338,9 +338,7 @@ for i=1:numel(GoodClustersData)
     GoodClustersData(i).CorrCoef=corr_temp;
 end
 
-
-GoodClusters_goodmembers=[];Threshold=0.2;
-idxKmeans_final_goodmember=zeros(size(ZS));
+Correlation_Clusters={};
 for i=1:length(GoodBetas)    
     idx_temp=find(idxKmeans_final==GoodBetas(i));
     corr_temp=zeros(size(idx_temp));
@@ -351,7 +349,22 @@ for i=1:length(GoodBetas)
     end    
     GoodClusters_goodmembers(i).ZS=ZS_AVG2(idx_temp(find(corr_temp>=Threshold)),:);        
     %GoodClusters_goodmembers(i).STD=ZS_STD(idx_temp(find(corr_temp>=Threshold)),:);    
+    Correlation_Clusters{i}=corr_temp;
     idxKmeans_final_goodmember(idx_temp(find(corr_temp>=Threshold)))=GoodBetas(i);
+end
+
+figure;
+for i=1:length(Correlation_Clusters)
+    subplot(3,1,i);histogram(Correlation_Clusters{i});
+end
+
+GoodClusters_goodmembers=[];Threshold=[0.3 0.5 0.5];
+idxKmeans_final_goodmember=zeros(size(ZS));
+for i=1:length(GoodBetas)      
+    corr_temp=Correlation_Clusters{i};
+    idx_temp=find(idxKmeans_final==GoodBetas(i));
+    GoodClusters_goodmembers(i).ZS=ZS_AVG2(idx_temp(find(corr_temp>=Threshold(i))),:);            
+    idxKmeans_final_goodmember(idx_temp(find(corr_temp>=Threshold(i))))=GoodBetas(i);
 end
 
 counter=1;
