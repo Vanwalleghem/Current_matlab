@@ -373,7 +373,7 @@ for i=GoodBetas
 end
 
 %colors = distinguishable_colors(length(GoodBetas),[1 1 1; 0 0 0]);
-colors = [1 0 0; 0 1 0; 0 1 1];
+colors = [1 0 0; 0 1 0; 1 0 1];
 colors = colors*256;
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1400, 500]);x = linspace(0.5,size(ZS_AVG,2)/2,size(ZS_AVG,2));
