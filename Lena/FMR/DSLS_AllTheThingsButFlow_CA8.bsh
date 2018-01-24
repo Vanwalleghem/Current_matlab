@@ -1,0 +1,506 @@
+/* 
+ *  DSLS acquisition using Arduino to control the ETL and galvo scan.
+ *  
+ *  Procedure: Before running, the Optotune "Lens Driver Controller" program must be started and connected.
+ *  Set the ETL "Operation Mode" to "Analog".
+ *  
+ *  This file uses audio stimuli.
+ */
+
+String fish = "Ca8_F7"; // First part of filename.
+
+/* ----- Input parameters----- */
+int Timepoints = 1200;//300;		//number of stacks			
+int exposure = 10;						// Exposure in ms while scanning.
+//  Note:
+// The minimum exposure for full frame is 10ms. We can reduce exposure time with smaller ROI selected, 
+// e.g. we can use 6ms with an ROI which is 330 pixels vertically with binning 4 (1320 pixels total) 
+
+
+
+// Z scan
+int increment = 5;
+int range = 125;//Currently max 250....
+
+double startscan=100;
+
+
+double ScanPower = 40; 	// Power during the fast scan
+double RestPower = 6;  		// Power to reset Obis to afterward, when light sheet stays on one plane
+int Restexposure = 100;		// Exposure to reset to after when no longer scanning.
+//int FramesPerVolume = (range / increment)+1;
+
+
+//Add media details here, if used for sensory stimulation. Note: Video only, not audio
+//String mediaPath1 = "/C:/Stimuli/2.mp4";
+String mediaPath1 = "/C:/Stimuli/Grating_BW_43.avi";
+String mediaPath2 = "/C:/Stimuli/300Hz.wav";
+String mediaPath3 = "/C:/Stimuli/LOOM_shortb.mp4";
+
+
+
+
+// TRAPPING EVENTS
+
+// Initialize Arduino settings.
+TrapGalvoPort= "COM20";
+commandTerminator = "\r"; 
+answerTerminator = "\r\n"; 
+
+// Those values or calculated after calibration of the traps MovingTrapsCalibration.bsh
+// Size of the calibration square
+int DVx=4000;
+int DVy=4000;
+// Position of the calibration square
+double[] Xpos = new double [4];
+Xpos[0]=345;
+Xpos[1]=361.5;
+Xpos[2]=105;
+Xpos[3]=90;
+
+ double[] Ypos = new double [4];
+Ypos[0]=401.6;
+Ypos[1]=140.5;
+Ypos[2]=130;
+Ypos[3]=383;
+
+// Pixel coordinates that we want to target the traps to
+int X0=201.946;
+int Y0=352.927;
+
+
+// Then calculate pixel/volt factor + offset
+X_g0=Xpos[0];
+Y_g0=Ypos[0];
+
+X_Gx=( Xpos[1]- Xpos[0])/DVx;
+Y_Gx=( Ypos[1]- Ypos[0])/DVx;
+X_Gy=( Xpos[3]- Xpos[0])/DVy;
+Y_Gy=( Ypos[3]- Ypos[0])/DVy;
+Norm=(X_Gx*Y_Gy-X_Gy*Y_Gx);
+
+dx0=X0-X_g0;
+dy0=Y0-Y_g0;
+
+Vx0=(int) Math.round((dx0*Y_Gy-dy0*X_Gy)/Norm);
+Vy0=(int) Math.round((dy0*X_Gx-dx0*Y_Gx)/Norm);
+
+// Send the final volue Vx0 and Vy0 to the galvo
+command="<stop," + Integer.toString(Vx0) + ","+ Integer.toString(Vy0) +">";
+mmc.setSerialPortCommand(TrapGalvoPort, command, commandTerminator); 
+answer = mmc.getSerialPortAnswer(TrapGalvoPort, answerTerminator); 
+print(answer);
+
+
+
+int frames_per_stack=(range/increment)+1;
+
+videoGo2=new int []{68, 82, 115,150,157,189,200,218,232};
+//videoGo=new int []{1,2,3,4,5,6,7,8,9};
+for( int i=0; i<videoGo2.length; i++ ) {	
+	videoGo2[i]=videoGo2[i]*1000/exposure;
+}
+
+loomGo=new int []{75, 89, 108,164,171,182,207,225,239};
+for( int i=0; i<loomGo.length; i++ ) {	
+	loomGo[i]=loomGo[i]*1000/exposure;
+}
+
+audioGo=new int []{64, 100, 122,157,174,178,189,196,210,214,228,232};
+for( int i=0; i<audioGo.length; i++ ) {	
+	audioGo[i]=audioGo[i]*1000/exposure;
+}
+
+Vestibular=new int []{60, 96, 104,150,167,178,185,196,200,214,218,242};
+for( int i=0; i<Vestibular.length; i++ ) {	
+	Vestibular[i]=Vestibular[i]*1000/exposure;
+}
+
+
+//If we want video to repeat, this sets the time between subsequent presentations of video. 
+// Units of camera frames, i.e. 10ms.
+// Set to zero for no repeats.
+
+int laser_on_warmup = 10;//20000; //how long in ms before experiment starts to turn on and scan laser 
+
+
+boolean scandown=false; // false: start deep and scan up, true: start shallow and scan down.
+
+
+
+
+
+
+// In principle, no further user input should be required below this point.
+
+double Galvo_int_per_um=2.96;//0.00159*(4095/3.3*(6/4)); // What (int) level should the Arduino output to move galvo 1um? 
+double ETL_int_per_um=11.9;//10.8;//12.3;//16.8;//25.9;       			 // Note, output is 12-bit 0-4095, =0.55-2.75V.
+														// ETL input digitizes 0-5V as 0-1023 (10-bit), Arduino max range covers ~ 110-560 on ETL
+
+
+int nrFrames = range/increment+1;
+int nrStacks = Timepoints*nrFrames;
+
+
+boolean displayimages=true; // Display images as they are aquired?  
+// Note, disabling the display does not appear to improve the running efficiency, as far as I can tell for short sequences
+
+
+
+/* ----- Initialize ----- */
+
+import org.micromanager.api.*;
+import org.micromanager.acquisition.*;
+import org.micromanager.acquisition;
+import org.micromanager.api.AcquisitionOptions;
+import java.lang.System;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+// media player
+import java.util.*;
+import java.awt.*;
+import java.awt.GraphicsEnvironment.*;
+import java.awt.GraphicsDevice.*;
+import java.awt.GraphicsConfiguration.*;
+import java.net.*;
+import javax.swing.*;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.media.*;
+import javax.media.Controller.*;
+import javax.media.Player.*;
+import javax.media.MediaHandler.*;
+import javax.media.protocol.*;
+import javax.media.MediaLocator.*;
+import com.sun.jna.NativeLibrary;
+import com.sun.jna.*;
+import com.sun.jna.Library.*;
+import uk.co.caprica.vlcj.*;
+import uk.co.caprica.vlcj.component.EmbeddedMediaPlayerComponent;
+import uk.co.caprica.vlcj.runtime.RuntimeUtil;
+import uk.co.caprica.vlcj.runtime.x.*;
+import uk.co.caprica.vlcj.binding.*;
+import uk.co.caprica.vlcj.binding.internal.*;
+import uk.co.caprica.vlcj.mrl.*;
+import uk.co.caprica.vlcj.mrl.FileMrl.*;
+import uk.co.caprica.vlcj.player.*;
+import uk.co.caprica.vlcj.player.embedded.*;
+import uk.co.caprica.vlcj.player.embedded.videosurface.*;
+import uk.co.caprica.vlcj.player.manager.*;
+
+
+// Save file name + directory
+DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+Date dateobj = new Date();
+date = dateFormat.format(dateobj);
+rootDirName = ("F:/Data/" + date + "");
+acqName=(fish + "_range" + Integer.toString(range) + "_step" + Integer.toString(increment) 
++ "_exposure" + Integer.toString(exposure) + "_power" +Integer.toString((int)ScanPower));
+
+
+
+
+// Initialize Arduino settings.
+port = "COM15"; 
+commandTerminator = "\r"; 
+answerTerminator = "\r\n"; 
+
+
+
+int GZincrement;
+int ETincrement;
+int GZstart;
+int ETstart;
+
+if(scandown){
+	
+	print("scan down");
+	GZincrement = (int) Math.round(Galvo_int_per_um*increment)*-1;
+	ETincrement = (int) Math.round(ETL_int_per_um*increment)*-1;
+	GZstart		 = (1-nrFrames)*GZincrement;
+	ETstart		 = (1-nrFrames)*ETincrement;
+
+}
+else{
+	print("scan up");
+	GZstart		 = (int) Math.round(Galvo_int_per_um*startscan);
+	ETstart		 = (int) Math.round(ETL_int_per_um*startscan);
+	GZincrement = (int) Math.round(Galvo_int_per_um*increment);
+	ETincrement = (int) Math.round(ETL_int_per_um*increment);
+
+}
+
+
+// Initialize the Galvo Z scan:
+command = ("<GZ," + Integer.toString(GZstart) + "," + Integer.toString(nrFrames) + "," + Integer.toString(GZincrement) + ">" );
+mmc.setSerialPortCommand(port, command, commandTerminator); 
+answer = mmc.getSerialPortAnswer(port, answerTerminator); 
+print(answer);
+
+// Initialize the ETL Z scan:
+command = ("<ET," + Integer.toString(ETstart) + "," + Integer.toString(nrFrames) + "," + Integer.toString(ETincrement) + ">" );
+mmc.setSerialPortCommand(port, command, commandTerminator); 
+answer = mmc.getSerialPortAnswer(port, answerTerminator); 
+print(answer);
+
+
+// If anything is running on camera, stop it now.
+mmc.stopSequenceAcquisition(); 
+gui.closeAllAcquisitions();
+
+
+
+// Initialize the media player
+String path = "C:/Program Files/VideoLAN/VLC/";
+NativeLibrary.addSearchPath("libvlc", path);
+NativeLibrary.addSearchPath(RuntimeUtil.getLibVlcLibraryName(),path);
+LibXUtil.initialise();
+
+String[] mediaOptions = {};
+String mrl1 = new FileMrl().file(mediaPath1).value();
+String mrl2 = new FileMrl().file(mediaPath2).value();
+String mrl3 = new FileMrl().file(mediaPath3).value();
+
+GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+GraphicsDevice[] gs = ge.getScreenDevices();
+GraphicsDevice gd2 = gs[0];
+GraphicsConfiguration[] gc2 = gd2.getConfigurations();
+
+Canvas canvas1 = new Canvas();
+canvas1.setSize(1280,1024);
+canvas1.setVisible(true);
+canvas1.createBufferStrategy(1);
+Container container1 = new Container();
+container1.add(canvas1);
+
+JFrame frame1 = new JFrame(gc2[0]);
+frame1.setContentPane(container1);
+frame1.setSize(1280,1024);
+//frame1.setExtendedState(JFrame.MAXIMIZED_BOTH); 
+frame1.setUndecorated(true);
+frame1.setVisible(true);
+
+GraphicsDevice gd1 = gs[1];
+GraphicsConfiguration[] gc1 = gd1.getConfigurations();
+
+Canvas canvas2 = new Canvas();
+canvas2.setSize(300,200);
+canvas2.setVisible(true);
+canvas2.createBufferStrategy(1);
+Container container2 = new Container();
+container2.add(canvas2);
+
+JFrame frame2 = new JFrame(gc1[0]);
+frame2.setContentPane(container2);
+frame2.setSize(300,200);
+frame2.setVisible(true);
+//frame2.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+FullScreenStrategy fullScreenStrategy1 = new DefaultFullScreenStrategy(frame1);
+String[] libvlcArgs = {"--no-video-title-show"};
+MediaPlayerFactory mediaPlayerFactory1 = new MediaPlayerFactory(libvlcArgs);
+EmbeddedMediaPlayer mediaPlayer1 = mediaPlayerFactory1.newEmbeddedMediaPlayer(fullScreenStrategy1);
+
+CanvasVideoSurface videoSurface1 = mediaPlayerFactory1.newVideoSurface(canvas1);
+mediaPlayer1.setVideoSurface(videoSurface1);
+
+FullScreenStrategy fullScreenStrategy2 = new DefaultFullScreenStrategy(frame2);
+String[] libvlcArgs = {"--no-video-title-show"};
+MediaPlayerFactory mediaPlayerFactory2 = new MediaPlayerFactory(libvlcArgs);
+EmbeddedMediaPlayer mediaPlayer2 = mediaPlayerFactory2.newEmbeddedMediaPlayer(fullScreenStrategy2);
+
+CanvasVideoSurface videoSurface2 = mediaPlayerFactory2.newVideoSurface(canvas2);
+mediaPlayer2.setVideoSurface(videoSurface2);
+
+int repeatsVid=1;
+int repeatsAud=1;
+boolean videoIsOn = false;
+boolean audioIsOn = false;
+boolean loomIsOn = false;
+
+//Prepare media metadata text
+String mediaMeta=("mediaPath1:"+ mediaPath1  +
+", mediaPath2:"+ mediaPath2 
+//", videoTimeGo:"+ Integer.toString(videoTimeGo) + 
+//", videoGo:"+ Integer.toString(videoGo) + 
+//", videoRepTimeinSec:"+ Integer.toString(videoRepTimeinSec)+
+//", videoRepTime:"+ Integer.toString(videoRepTime) + 
+//", numberOfVideoReps:"+ Integer.toString(numberOfVideoReps) + 
+//", audioTimeGo:"+ Integer.toString(videoTimeGo) + 
+//", audioGo:"+ Integer.toString(videoGo) + 
+//", audioRepTimeinSec:"+ Integer.toString(videoRepTimeinSec)+
+//", audioRepTime:"+ Integer.toString(videoRepTime) + 
+//", numberOfAudioReps:"+ Integer.toString(numberOfVideoReps)
+);
+
+
+
+// Initialize acquisition
+gui.openAcquisition(acqName, rootDirName, nrStacks, 1, 1, 1, displayimages, true);
+gui.setImageSavingFormat(TaggedImageStorageMultipageTiff.class);
+
+long width = mmc.getImageWidth();
+long height = mmc.getImageHeight();
+long depth = mmc.getBytesPerPixel();
+long bitdepth = mmc.getImageBitDepth();
+gui.initializeAcquisition(acqName, (int) width, (int) height, (int) depth, (int) bitdepth);
+
+mmc.prepareSequenceAcquisition(mmc.getCameraDevice());
+mmc.initializeCircularBuffer();
+
+
+
+// Turn off AutoShutter, apply scanning parameters
+mmc.setAutoShutter(false);
+mmc.setShutterOpen(true);
+mmc.setProperty("CoherentObis", "PowerSetpoint", ScanPower);
+mmc.setExposure(exposure);
+
+
+if(laser_on_warmup!=0){
+	command = ("<scan," + Integer.toString(exposure) + ">" );
+	mmc.setSerialPortCommand(port, command, commandTerminator); 
+	answer = mmc.getSerialPortAnswer(port, answerTerminator); 
+	print(answer);
+
+	Thread.sleep(laser_on_warmup);
+	
+	mmc.setSerialPortCommand(port, "<SZ,0>", commandTerminator); 
+	answer = mmc.getSerialPortAnswer(port, answerTerminator); 
+	print(answer);
+
+}
+
+videoCounter=0;
+LoomCounter=0;
+AudioCounter=0;
+VestibularCounter=0;
+
+
+//Itia's magic
+// Initialize Arduino settings for Shutter.
+//shutterport = "COM8"; 
+
+//command = ("<trap," + Integer.toString(trapreps) + "," + Integer.toString(trapon) + "," + Integer.toString(trapoff) +"," + Integer.toString(trapdelay) + ">" );
+//mmc.setSerialPortCommand(shutterport, command, commandTerminator); 
+//answer = mmc.getSerialPortAnswer(shutterport, answerTerminator); 
+//print(answer);
+
+
+/* ----- Run acquisition  ----- */
+mmc.startSequenceAcquisition(nrStacks, 0, true);
+
+acquirer(){
+		if ((frame == videoGo2[videoCounter]) && (!videoIsOn)){
+			mediaPlayer1.playMedia(mrl1,mediaOptions);
+			videoIsOn = true;
+		}
+		if ((frame > videoGo2[videoCounter] ) && videoIsOn){
+			videoIsOn = false;
+			if (videoCounter<(videoGo2.length-1)){
+			videoCounter++;
+			//print(videoCounter);	
+			//print(videoGo[videoCounter]);
+			}
+		}
+		if ((frame == loomGo[LoomCounter]) && (!loomIsOn)){
+			mediaPlayer1.playMedia(mrl3,mediaOptions);
+			loomIsOn = true;
+		}
+		if ((frame > loomGo[LoomCounter] ) && loomIsOn){
+			loomIsOn = false;
+			if (LoomCounter<(loomGo.length-1)){
+			LoomCounter++;			
+			}
+		}
+		if ((frame == audioGo[AudioCounter]) && (!audioIsOn)){
+			mediaPlayer2.playMedia(mrl2,mediaOptions);
+			audioIsOn = true;
+		}
+		if ((frame > audioGo[AudioCounter] ) && audioIsOn){
+			audioIsOn = false;
+			if (AudioCounter<(audioGo.length-1)){
+			AudioCounter++;			
+			}
+		}
+
+		if (frame == Vestibular[VestibularCounter]){
+//Itia's magic
+		mmc.setProperty("Arduino-DAC1","Volts","5");
+		}
+		if (frame == Vestibular[VestibularCounter] + (1000/exposure)){
+			mmc.setProperty("Arduino-DAC1","Volts","0");			
+			if (VestibularCounter<(Vestibular.length-1)){
+			VestibularCounter++;			
+			}
+		}
+	if (mmc.getRemainingImageCount() > 0) { // Without this "if" loop the circular buffer doesn't fill. Why???
+
+		img = mmc.popNextTaggedImage();
+		gui.addImageToAcquisition(acqName, frame, 0, 0, 0, img);
+
+		// Note: This just tells the camera to acquire continuously the set number of frames. 
+		// The Arduino provides all scanning. 
+
+		frame++;		
+  	} 
+}
+
+int frame = 0;
+while (mmc.getRemainingImageCount() > 0 || mmc.isSequenceRunning(mmc.getCameraDevice())) {
+	try{
+		acquirer();
+	}
+	catch(Exception){
+		acquirer();
+	}
+}
+
+mmc.stopSequenceAcquisition();
+
+// Deactivate the Z scan:
+mmc.setSerialPortCommand(port, "<Z0>", commandTerminator); 
+answer = mmc.getSerialPortAnswer(port, answerTerminator); 
+print(answer);
+
+// Apply settings for imaging single plane. This is needed to allow use of "Live" mode.
+mmc.setProperty("CoherentObis", "PowerSetpoint", RestPower);
+mmc.setExposure(Restexposure);
+
+mmc.setAutoShutter(true);
+mmc.setShutterOpen(false);
+
+
+
+//Imaging metadata text
+String metatext=("Timepoints:"+ Integer.toString(Timepoints) +
+", nrFrames:"+ Integer.toString(nrFrames) + 
+ ", exposure:"+ Integer.toString(exposure) + 
+", increment:"+ Integer.toString(increment) + 
+", range:"+ Integer.toString(range) + 
+", startscan:"+ Double.toString(startscan) +
+", ScanPower:"+ Double.toString(ScanPower) + 
+", range:"+ Integer.toString(range) + 
+", laser_on_warmup:"+ Integer.toString(laser_on_warmup) + 
+", Galvo_int_per_um:"+ Double.toString(Galvo_int_per_um) + 
+", ETL_int_per_um:"+ Double.toString(ETL_int_per_um)+
+", Binning = "+ mmc.getProperty(mmc.getCameraDevice(), "Binning"));
+
+
+
+
+//Write metadata text file
+metaFile=(rootDirName+"/"+acqName+"/acquisition_parameters.txt");
+
+BufferedWriter writer = new BufferedWriter(new FileWriter(metaFile));
+writer.write("Script: DSLS_AllTheThings_CA8.bsh" );
+writer.newLine();
+writer.write("Imaging:" );
+writer.newLine();
+writer.write(metatext);
+writer.newLine();
+writer.write("Media:" );
+writer.newLine();
+writer.write(mediaMeta);
+writer.close();

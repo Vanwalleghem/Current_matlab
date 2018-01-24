@@ -91,7 +91,7 @@ end
 
 Template2=repmat(Template,1,1,1,3);
 %for fish_nb=1:length(Fish_list)
-for fish_nb=ERO_fish    
+for fish_nb=ELO_fish    
     if iscell(Fish_list)
         Fish_name=Fish_list{fish_nb};
     else
@@ -155,6 +155,6 @@ end
  for slice=1:size(Template2,3)
         image_temp=squeeze(Template2(:, :,slice,:));%image_temp=uint8(image_temp);
         %image=(image-min_score)/(max_score-min_score);image=image*256;image=uint16(image);
-        OutputName='Template_Multipower_ERO_highThreshROI.tif';
+        OutputName='Template_Multipower_ELO_highThreshROI.tif';
         imwrite(image_temp, OutputName, 'WriteMode', 'append');
  end
