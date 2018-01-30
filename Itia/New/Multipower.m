@@ -392,7 +392,7 @@ for i=1:length(Correlation_Clusters)
     subplot(length(Correlation_Clusters),1,i);histogram(Correlation_Clusters{i});
 end
 
-GoodClusters_goodmembers=[];Threshold=[0.5 0.5 0.55 0.3];
+GoodClusters_goodmembers=[];Threshold=[0.5 0.5 0.55 0.2];
 idxKmeans_final_goodmember=zeros(size(idxKmeans_final));
 for i=1:length(GoodBetas)      
     corr_temp=Correlation_Clusters{i};
