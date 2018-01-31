@@ -46,9 +46,9 @@ for fish_nb=1:length(Fish_list)
         
     end    
     if iscell(Fish_list)
-        image_name=strcat('_ROIsFish',Fish_list{fish_nb},'_Center.csv');
+        image_name=strcat('_ROIsFish',Fish_list{fish_nb},'b.csv');
     else
-        image_name=strcat('_ROIsFish',num2str(Fish_list(fish_nb)),'_Center.csv');
+        image_name=strcat('_ROIsFish',num2str(Fish_list(fish_nb)),'b.csv');
     end
     csvwrite(image_name,Centroids);
 end
@@ -61,6 +61,19 @@ for i=1:length(MatFiles)
     name=strcat(MatFiles(i).name);
     [Fish,~]=regexp(name,'Fish2017(\d+)_','tokens','match');Fish=str2num(Fish{1}{1});
     idx_Fish(i)=Fish;
+end
+clearvars i Fish Plane name counter
+
+Fish_list=unique(idx_Fish);
+
+ idx_Fish={};
+for i=1:length(MatFiles)    
+    name=strcat(MatFiles(i).name);
+    [Fish,~]=regexp(name,'Fish2017(\d+_E\DO)_','tokens');Fish=Fish{1};
+    if iscell(Fish)
+        Fish=Fish{1};
+    end
+    idx_Fish{i}=Fish;
 end
 clearvars i Fish Plane name counter
 
