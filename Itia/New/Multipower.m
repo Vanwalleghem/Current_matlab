@@ -43,26 +43,26 @@ for i = 2:length(MatFiles)
 end
 clearvars GC C S F N name i GS Calcium Noise Fitness
 
-MatFiles=dir('*analysis_matlab.mat');
-name=strcat(MatFiles(1).name);
-Baseline=load(name, 'Baseline');
-Baseline=Baseline.Baseline;
-Baseline=cell2mat(Baseline);
-Fitness=load(name, 'idx_components');
-Fitness=Fitness.idx_components+1;
-Baseline=Baseline(Fitness);
-for i = 2:length(MatFiles)
-    name=strcat(MatFiles(i).name);
-    B=load(name, 'Baseline');
-    B=B.Baseline;
-    B=cell2mat(B);
-    Fitness=load(name, 'idx_components');
-    Fitness=Fitness.idx_components+1;
-    B=B(Fitness);
-    Baseline=horzcat(Baseline,B);    
-    %MatFiles(i).Baseline=Baseline;    
-end
-clearvars GC C S F N name i GS Calcium Noise Fitness
+% MatFiles=dir('*analysis_matlab.mat');
+% name=strcat(MatFiles(1).name);
+% Baseline=load(name, 'Baseline');
+% Baseline=Baseline.Baseline;
+% Baseline=cell2mat(Baseline);
+% Fitness=load(name, 'idx_components');
+% Fitness=Fitness.idx_components+1;
+% Baseline=Baseline(Fitness);
+% for i = 2:length(MatFiles)
+%     name=strcat(MatFiles(i).name);
+%     B=load(name, 'Baseline');
+%     B=B.Baseline;
+%     B=cell2mat(B);
+%     Fitness=load(name, 'idx_components');
+%     Fitness=Fitness.idx_components+1;
+%     B=B(Fitness);
+%     Baseline=horzcat(Baseline,B);    
+%     %MatFiles(i).Baseline=Baseline;    
+% end
+% clearvars GC C S F N name i GS Calcium Noise Fitness
 
 ZS=zscore(GoodCalcium,1,2);
 x = linspace(0.2,size(ZS,2)/5,size(ZS,2));y = linspace(1,size(ZS,1),size(ZS,1));
@@ -70,7 +70,7 @@ Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1200, 900]);
 imagesc(x,y,ZS(randperm(size(ZS,1)),:),[-0.5 5]);colormap hot;set(gca,'YTickLabel',[]);
 
-ZS2=zscore(bsxfun(@plus,GoodCalcium+GoodNoise,Baseline'),1,2);
+ZS2=zscore(GoodCalcium+GoodNoise,1,2);
 
 %correction for 09111_ERO et 09112_ELO
 
@@ -128,7 +128,7 @@ end
 % options = statset('UseParallel',1); [idxKmeans_ZS Cmap_ZS]=kmeans(ZS,10,'Options',options,'Replicates',5,'MaxIter',1000,'Display','final');
 % figure;imagesc(Cmap_ZS,[-0.5 3]);colormap hot
 
-Stimuli=zeros(6,size(ZS,2));
+Stimuli=zeros(6,size(ZS2,2));
 GCaMP6=[0,1.69644104899772,5.13796058542217,8.27886020152244,10.3756715204800,11.8173714529814,12.2425184714093,10.8571417354877,8.80831829681196,6.91339112244670,5.46959264663869,4.30868766622567,3.42533619066766,2.75378443486879,2.18017250852183,1.72816235135824,1.32732537295463,1.00684435500268,0.730210038304555,0.530242444093118,0.362253250339685,0.227668255288566,0.0869242416152502,0.000718266708050853,-0.0828334873368325]';
 idxStart=40;
 counter=0;

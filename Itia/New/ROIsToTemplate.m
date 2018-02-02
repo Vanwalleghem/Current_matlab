@@ -17,7 +17,7 @@ ERO_fish=find(cellfun('isempty', IndexC));
 Fish_list=Fish_list_backup;
 
 %fname = 'Template_Itia_16012018.tif';
-fname = 'Huc_H2B_RFP_8bit.tif';
+fname = 'Huc_H2B_RFP.tif';
 info = imfinfo(fname);
 num_images = numel(info);
 Template=zeros(info(1).Height,info(1).Width,length(info),'uint8');
