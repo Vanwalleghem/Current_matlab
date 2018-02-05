@@ -238,6 +238,8 @@ for fish_nb=1:13
 end
 clearvars GoodROIs Mask counter idx_temp Coords IsInMask IsInMask_temp idx_null
 
+
+
 %Just the BigRegions
 BigBrainRegions=[76 113 259 274 294];
 Clusters_BigBrain=cell(length(Fish_list),length(BigBrainRegions),length(GoodBetas));

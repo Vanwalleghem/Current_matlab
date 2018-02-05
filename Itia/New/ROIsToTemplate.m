@@ -26,6 +26,7 @@ for k = 1:num_images
     image_temp=image_temp/max(max(image_temp));image_temp=image_temp*128;
     Template(:,:,k) = image_temp';    
 end
+clearvars info fname num_images k i j 
 
 imageSizeX = size(Template,1);
 imageSizeY = size(Template,2);

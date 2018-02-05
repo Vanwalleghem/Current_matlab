@@ -318,11 +318,11 @@ ROIs=struct();
 for i=1:length(CSV_Files);
     temp=csvread(CSV_Files(i).name,1);
     %Fishname=regexp(CSV_Files(i).name,'Fish(\d+_\w+).csv','tokens');Fishname=Fishname{1}{1};
-    %Fishname=regexp(CSV_Files(i).name,'FishResized(\d+_\w+).csv','tokens');Fishname=Fishname{1}{1};
-    Fishname=regexp(CSV_Files(i).name,'Betas(\d+_\w+).csv','tokens');Fishname=Fishname{1}{1};
+    Fishname=regexp(CSV_Files(i).name,'FishResized(\d+_\w+).csv','tokens');Fishname=Fishname{1}{1};
+    %Fishname=regexp(CSV_Files(i).name,'Betas(\d+_\w+).csv','tokens');Fishname=Fishname{1}{1};
     ROIs(i).name=Fishname;    
     ROIs(i).coord=temp(:,1:3);
     ROIs(i).idx=temp(:,5);
-    ROIs(i).cluster=temp(:,6);
+    %ROIs(i).cluster=temp(:,6);
 end
 clearvars i temp CSV_Files Fishname
