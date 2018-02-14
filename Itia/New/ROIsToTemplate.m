@@ -32,6 +32,7 @@ imageSizeX = size(Template,1);
 imageSizeY = size(Template,2);
 [columnsInImage rowsInImage] = meshgrid(1:imageSizeX, 1:imageSizeY);radius =3;
 
+
 Template2=repmat(Template,1,1,1,3);
 Template2=zeros([size(Template),3]);
 for fish_nb=ELO_fish

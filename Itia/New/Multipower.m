@@ -281,6 +281,7 @@ parfor idx_ZS=1:size(ZS2,1)
 end
 
 Stimuli_AVG=zeros(6,size(ZS_AVG2,2));
+GCaMP6=[0,1.69644104899772,5.13796058542217,8.27886020152244,10.3756715204800,11.8173714529814,12.2425184714093,10.8571417354877,8.80831829681196,6.91339112244670,5.46959264663869,4.30868766622567,3.42533619066766,2.75378443486879,2.18017250852183,1.72816235135824,1.32732537295463,1.00684435500268,0.730210038304555,0.530242444093118,0.362253250339685,0.227668255288566,0.0869242416152502,0.000718266708050853,-0.0828334873368325]';
 idxStart=11;
 for i=1:6    
     Stimuli_AVG(i,(idxStart+(i-1)*41):(idxStart+(i-1)*41)+size(GCaMP6,1)-1)=GCaMP6;
@@ -646,3 +647,54 @@ for idx=1:length(MatFiles)
 end
 clearvars idx i temp tempFileNb fileNb AVG_files filename image counter Numbers image2 image3 k ROI ROIs ROIsNb Start tempROIsNb name imagename tempidx Raster
 
+%colorblind colors
+colors=[256 50 0; 240 159 0; 0 158 115; 0 114 250];
+
+%Correct Inhib AVG
+idx_temp=find(idxKmeans_final_goodmemberInBrain==GoodBetas(4));
+temp_inhib=ZS2(idx_temp,:);
+parfor idx_ZS=1:size(temp_inhib,1)
+    start=30;
+    AVG=[];
+    for i=1:3
+        AVG(i,:)=temp_inhib(idx_ZS,start:start+40);
+        start=start+40;
+    end
+    AVG=mean(AVG,1);
+    AVG=AVG-max(AVG);
+    for j=2:6
+        for i=1:3
+            temp(i,:)=temp_inhib(idx_ZS,start:start+40)-prctile(temp_inhib(idx_ZS,start:start+40),90);
+            start=start+40;
+        end
+        temp=mean(temp,1);
+        temp=temp;
+        AVG=[AVG temp];
+    end
+    temp_inhib_AVG(idx_ZS,:)=AVG;
+end
+
+
+%Make Figures
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 500, 1400]);x = linspace(0.5,size(ZS_AVG2,2)/2,size(ZS_AVG2,2));
+counter=1;counter2=1;yplot=1;xplot=length(GoodBetas);%yplot=ceil(length(GoodBetas)/xplot);
+for i=GoodBetas
+    idx_temp=find(idxKmeans_final_goodmemberInBrain==i);
+    subplot(xplot,yplot,counter);
+    if counter ==4        
+        H=shadedErrorBar(x,mean(temp_inhib_AVG,1), std(temp_inhib_AVG,1,1));axis([0 123 -3 6.5]);
+        H.mainLine.Color=colors(counter2,:)/256;
+        H.patch.FaceColor=colors(counter2,:)/512;
+        H.edge(1).Color=colors(counter2,:)/512;
+        H.edge(2).Color=colors(counter2,:)/512;
+    else
+        H=shadedErrorBar(x,mean(ZS_AVG2(idx_temp,:),1), std(ZS_AVG2(idx_temp,:),1,1));axis([0 123 -1 7]);
+        H.mainLine.Color=colors(counter2,:)/256;
+        H.patch.FaceColor=colors(counter2,:)/512;
+        H.edge(1).Color=colors(counter2,:)/512;
+        H.edge(2).Color=colors(counter2,:)/512;
+    end
+    counter=counter+1;
+    counter2=counter2+1;
+end
