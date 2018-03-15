@@ -1,4 +1,4 @@
-MatFiles=dir('*analysis_matlab.mat');
+MatFiles=dir('*Audio*analysis_matlab.mat');
 name=strcat(MatFiles(1).name);
 Calcium=load(name, 'DenoisedTraces');
 Calcium=Calcium.DenoisedTraces;

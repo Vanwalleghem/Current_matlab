@@ -74,7 +74,7 @@ ZS2(numbersForROIs(1):numbersForROIs(end)-1,:)=ZS_temp;
 PerBrainRegions=struct();
 ItiaList={'Thalamus','Cerebellum','NucMLF','Semicircularis','Telencephalon','Tectum','Longitudinalis','Tegmentum','Habenula'};
 progressbar;
-for i=4
+for i=1
     progressbar(i/length(ItiaList),[]);
     regionName=ItiaList{i};
     Mask=[];

@@ -20,7 +20,7 @@ for i = 2:length(MatFiles)
     C=C.DenoisedTraces;
 %     if i==3
 %         C=[C(:,1) C(:,1) C(:,1:58)];
-%     end
+% %     end
     %S=load(name, 'Spikes');
     %S=S.Spikes;
     N=load(name, 'Noise');
