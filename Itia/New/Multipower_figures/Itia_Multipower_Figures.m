@@ -654,7 +654,7 @@ for i=1:length(ItiaList)
     end    
 end
 clearvars goodROIs ROIs_temp regionName idx_temp Template2 idx_slice roi_nb xcoord ycoord circlePixels image_temp columnsInImage rowsInImage col corr_temp Fighdandle framerate GoodBet_temp H idx_g Model_cereb
-clearvars counter_ERO ROIs_ERO ROIs_ELO counter_ELO Mask_limits Numbers idx_EROtemp idx_ELOtemp idx_goodROIs_correct idx_goodROIs
+clearvars counter_ERO ROIs_ERO ROIs_ELO counter_ELO Mask_limits Numbers idx_EROtemp idx_ELOtemp idx_goodROIs_correct idx_goodROIs counter counter2
 
 test=squeeze(sum(ERO_coord_count,1));
 test=squeeze(ERO_coord_count(:,:,1));

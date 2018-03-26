@@ -42,7 +42,7 @@ for i = 2:length(MatFiles)
     %MatFiles(i).GC=GC;
 end
 clearvars GC C S F N name i GS Fitness
-ZS=zscore(Calcium+Noise,1,2);
+ZS_all=zscore(Calcium+Noise,1,2);
 ZS2=zscore(GoodCalcium+GoodNoise,1,2);
 clearvars GoodCalcium GoodNoise Calcium Noise
 
@@ -74,7 +74,7 @@ ZS2(numbersForROIs(1):numbersForROIs(end)-1,:)=ZS_temp;
 PerBrainRegions=struct();
 ItiaList={'Thalamus','Cerebellum','NucMLF','Semicircularis','Telencephalon','Tectum','Longitudinalis','Tegmentum','Habenula'};
 progressbar;
-for i=1
+for i=1:length(ItiaList)
     progressbar(i/length(ItiaList),[]);
     regionName=ItiaList{i};
     Mask=[];
@@ -87,8 +87,8 @@ for i=1
             Mask=vertcat(Mask,Zbrain_Masks{j,3});
         end
     end
-    for fish_nb=1:13
-        progressbar([],fish_nb/13);
+    for fish_nb=1:length(Fish_list)
+        progressbar([],fish_nb/length(Fish_list));
         if iscell(Fish_list)
             Fish_name=Fish_list{fish_nb};
         else
@@ -132,8 +132,8 @@ clearvars i j fish_nb Mask
 
 regionName='Hindbrain';
 progressbar;
- for fish_nb=1:13
-        progressbar(fish_nb/13);        
+ for fish_nb=1:length(ItiaList)
+        progressbar(fish_nb/length(ItiaList));        
         if iscell(Fish_list)
             Fish_name=Fish_list{fish_nb};
         else

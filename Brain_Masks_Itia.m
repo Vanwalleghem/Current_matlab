@@ -148,6 +148,7 @@ clearvars GoodROIs Mask counter idx_temp Coords IsInMask IsInMask_temp
 
 Mean_Clusters_brain=zeros(length(GoodBetas),length(Zbrain_Masks));
 STD_Clusters_brain=zeros(length(GoodBetas),length(Zbrain_Masks));
+Sum_Clusters_brain=zeros(length(GoodBetas),length(Zbrain_Masks));
 for k=1:size(Clusters_Brain,3)
     for j=1:size(Clusters_Brain,2)
         temp=zeros(1,length(Fish_list));
@@ -156,6 +157,7 @@ for k=1:size(Clusters_Brain,3)
         end
         Mean_Clusters_brain(k,j)=mean(temp);
         STD_Clusters_brain(k,j)=std(temp);
+        Sum_Clusters_brain(k,j)=sum(temp);        
     end
 end
 
@@ -174,6 +176,7 @@ end
 
 Mean_Clusters_brain_nozeros=Mean_Clusters_brain(:,columnsWithNoZeros);
 STD_Clusters_brain_nozeros=STD_Clusters_brain(:,columnsWithNoZeros);
+Sum_Clusters_brain_nozeros=Sum_Clusters_brain(:,columnsWithNoZeros);
 Brain_names_nozeros=Brain_names(columnsWithNoZeros);
 
 temp=max(cumsum(Mean_Clusters_brain_nozeros,2),[],2);
@@ -184,15 +187,7 @@ end
 Mean_Clusters_brain_nozeros_norm=Mean_Clusters_brain_nozeros_norm*100;
 STD_Clusters_brain_nozeros_norm=STD_Clusters_brain_nozeros_norm*100;
 
-Sorted_Brain=zeros(size(Mean_Clusters_brain_nozeros_norm));
-Idx_Brain=zeros(size(Mean_Clusters_brain_nozeros_norm));
-for i=1:length(GoodBetas)
-    [Sorted_Brain_perClust(i,:) Idx_Brain_perClust(i,:)]=sort(Mean_Clusters_brain_nozeros_norm(i,:));
-end
 
-[Sorted_Brain Idx_Brain]=sortrows(Mean_Clusters_brain_nozeros_norm');Sorted_Brain=Sorted_Brain';
-Sorted_STD=STD_Clusters_brain_nozeros_norm(:,Idx_Brain);
-Sorted_names=Brain_names_nozeros(Idx_Brain);
 
 
 %Null Distribution
@@ -239,6 +234,48 @@ end
 clearvars GoodROIs Mask counter idx_temp Coords IsInMask IsInMask_temp idx_null
 
 
+
+
+Mean_Null_brain=zeros(length(GoodBetas),length(Zbrain_Masks));
+Sum_Null_brain=zeros(length(GoodBetas),length(Zbrain_Masks));
+STD_Null_brain=zeros(length(GoodBetas),length(Zbrain_Masks));
+for k=1:size(Null_Brain,3)
+    for j=1:size(Null_Brain,2)
+        temp=zeros(1,length(Fish_list));
+        for i=1:size(Null_Brain,1)
+            temp(i)=length(Null_Brain{i,j,k});
+        end
+        Mean_Null_brain(k,j)=mean(temp);
+        STD_Null_brain(k,j)=std(temp);
+        Sum_Null_brain(k,j)=sum(temp);        
+    end
+end
+
+Mean_Null_brain_nozeros=Mean_Null_brain(:,columnsWithNoZeros);
+Sum_Null_brain_nozeros=Sum_Null_brain(:,columnsWithNoZeros);
+STD_Null_brain_nozeros=STD_Null_brain(:,columnsWithNoZeros);
+
+
+temp=max(cumsum(Mean_Null_brain_nozeros,2),[],2);
+for i=1:length(GoodBetas)
+    Mean_Null_brain_nozeros_norm(i,:)=Mean_Null_brain_nozeros(i,:)/temp(i);
+    STD_Null_brain_nozeros_norm(i,:)=STD_Null_brain_nozeros(i,:)/temp(i);
+end
+Mean_Null_brain_nozeros_norm=Mean_Null_brain_nozeros_norm*100;
+STD_Null_brain_nozeros_norm=STD_Null_brain_nozeros_norm*100;
+
+Sorted_Brain=zeros(size(Mean_Clusters_brain_nozeros));
+Idx_Brain=zeros(size(Mean_Clusters_brain_nozeros));
+for i=1:length(GoodBetas)
+    [Sorted_Brain_perClust(i,:) Idx_Brain_perClust(i,:)]=sort(Mean_Clusters_brain_nozeros_norm(i,:));
+end
+
+[Sorted_Brain Idx_Brain]=sortrows(Mean_Clusters_brain_nozeros_norm');Sorted_Brain=Sorted_Brain';
+Sorted_STD=STD_Clusters_brain_nozeros_norm(:,Idx_Brain);
+Sorted_names=Brain_names_nozeros(Idx_Brain);
+Sorted_sum=Sum_Clusters_brain_nozeros(:,Idx_Brain);
+Sorted_Null=Sum_Null_brain_nozeros(:,Idx_Brain);
+temp=sum(Sorted_Null,1);
 
 %Just the BigRegions
 BigBrainRegions=[76 113 259 274 294];
