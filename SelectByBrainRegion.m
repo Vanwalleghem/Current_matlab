@@ -10,7 +10,6 @@ Noise=Noise.Noise;
 Fitness=load(name, 'idx_components');
 Fitness=Fitness.idx_components+1;
 GoodCalcium=Calcium(Fitness,:);
-
 GoodNoise=Noise(Fitness,:);
 MatFiles(1).GoodNumber=length(Fitness);
 %MatFiles(1).GC=GoodCalcium;

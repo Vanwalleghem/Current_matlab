@@ -124,7 +124,7 @@ delete(OutputName);
         imwrite(image_temp, OutputName, 'WriteMode', 'append');
  end
  
- Template2=zeros([size(Template),3]);
+Template2=zeros([size(Template),3]);
 Template2=repmat(Template,1,1,1,3);
 for fish_nb=ERO_fish
     if iscell(Fish_list)

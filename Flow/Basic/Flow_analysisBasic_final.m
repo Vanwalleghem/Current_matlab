@@ -250,6 +250,45 @@ for idx=Start:length(MatFiles)
 end
 clearvars idx i temp tempFileNb fileNb AVG_files filename image counter Numbers image2 image3 k ROI ROIs ROIsNb Start tempROIsNb name imagename tempidx Raster
 
+for idx=Start:length(MatFiles)
+    filename=MatFiles(idx).name;
+    ROIsNb=[];ClusterNb=[];
+    %for k = 1 : length(temp)
+    for k = 1 : length(temp)
+        tempROIsNb=find([temp{k}]<=Numbers(idx+1));
+        if tempROIsNb            
+            ROIsNb=[ROIsNb  temp{k}(tempROIsNb)];
+            temp{k}(tempROIsNb)=[];
+            ClusterNb=[ClusterNb ; repmat(k,length(tempROIsNb),1)];
+        end
+    end
+    if ROIsNb
+        imagename=regexp(filename,'_output_analysis','split');
+        %imagename=regexp(imagename,'_output_analysis_matlab2.mat','split');
+        imagename=strcat('AVG_',imagename{1},'.tif');
+        image=double(imread(imagename));image=image/max(max(image));image=image*128;
+        image=uint8(image);
+        image2=zeros(size(image(:,:,1)));
+        image3=repmat(image,1,1,3);
+        ROIs=All_ROIs{idx};       
+        ROIsNb=ROIsNb-Numbers(idx);
+        ROIs=ROIs(:,ROIsNb);
+        for k = 1 : size(ROIs,2)
+            image2=zeros(size(image(:,:,1)));
+            ROI=full(reshape(ROIs(:,k),size(image,1),size(image,2)));            
+            image2=image2+ROI;image2=(image2/max(max(image2)));image2=uint8(image2);
+            for j=1:3
+                image3(:,:,j)=image3(:,:,j)+image2*colors(ClusterNb(k),j);
+            end
+        end
+        %image3(:,:,3)=image;
+            name=strcat('_Kmeans_',imagename(4:end));
+    imwrite(image3,name,'tif');
+    end
+    %image3=uint8(image3);
+
+end
+
 
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1400, 900]);
@@ -445,3 +484,52 @@ pVals_KS(i:end)=nan;
 KS_idx(isfinite(pVals_KS))=[];
 Planes_KS_pvalues(KS_idx)=1;
 
+%Creates ROI csv files
+Errored_ROI={};
+progressbar(0,0,0);
+for fish_nb=1:length(Fish_list)
+    
+    IndexC=find(idx_Fish==Fish_list(fish_nb));
+    IndexC=ismember(ROIs_idx,IndexC);
+    MatFiles_fish = find(IndexC>0);
+    if MatFiles_fish(1)==1
+        numbersForROIs=[1 [MatFiles(MatFiles_fish).GoodNumber]];
+    else
+        numbersForROIs=[MatFiles(MatFiles_fish(1)-1).GoodNumber [MatFiles(MatFiles_fish).GoodNumber]];
+    end
+    Centroids=[];
+    for plane=1:length(MatFiles_fish)
+        filename=MatFiles(MatFiles_fish(plane)).name;
+        if findstr(filename,'2planes')
+            [slice,~]=regexp(filename,'f\d-(\d+)um_','tokens','match');slice=str2num(slice{1}{1});
+        else
+            [slice,~]=regexp(filename,'\d+_(\d+)_','tokens','match');slice=str2num(slice{1}{1});
+        end
+        ROI=All_ROIs{MatFiles_fish(plane)};
+        imagename=regexp(filename,'_output_analysis','split');
+        imagename=strcat('AVG_',imagename{1},'.tif');
+        image=double(imread(imagename));image=image/max(max(image));image=image*128;
+        ROI=reshape(full(ROI),size(image,1),size(image,2),size(ROI,2));
+        if plane==1
+            temp_roi=0;
+        else
+            temp_roi=temp_roi+size(ROI,3);
+        end
+        for roi_nb=1:size(ROI,3)
+            temp=regionprops(uint16(squeeze(ROI(:,:,roi_nb)))==max(max(uint16(squeeze(ROI(:,:,roi_nb))))),'Centroid');
+            Centroids(roi_nb+temp_roi,5)=roi_nb+temp_roi;
+            temp=temp.Centroid;
+            Centroids(roi_nb+temp_roi,1:2)=temp;
+            Centroids(roi_nb+temp_roi,3)=(slice/20)+1;
+            progressbar([],[],roi_nb/size(ROI,3));
+        end
+        progressbar([],fish_nb/length(MatFiles_fish));
+    end
+    if iscell(Fish_list)
+        image_name=strcat('_ROIsFish_',Fish_list{fish_nb},'.csv');
+    else
+        image_name=strcat('_ROIsFish_',num2str(Fish_list(fish_nb)),'.csv');
+    end
+    csvwrite(image_name,Centroids);
+    progressbar(fish_nb/length(Fish_list));
+end

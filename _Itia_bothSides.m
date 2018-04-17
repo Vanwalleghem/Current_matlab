@@ -338,7 +338,7 @@ for j=1:length(ItiaList)
 end
 
 %Define the AVG stimuli
-Stimuli_AVG=zeros(6,size(ZS_AVG2,2));
+Stimuli_AVG=zeros(3,123);
 GCaMP6=[0,1.69644104899772,5.13796058542217,8.27886020152244,10.3756715204800,11.8173714529814,12.2425184714093,10.8571417354877,8.80831829681196,6.91339112244670,5.46959264663869,4.30868766622567,3.42533619066766,2.75378443486879,2.18017250852183,1.72816235135824,1.32732537295463,1.00684435500268,0.730210038304555,0.530242444093118,0.362253250339685,0.227668255288566,0.0869242416152502,0.000718266708050853,-0.0828334873368325]';
 idxStart=10;
 for i=1:3    
@@ -708,9 +708,8 @@ for i=1:length(ZS_clusters)
     print(Fighandle,strcat('_Cluster-',num2str(i)),'-dsvg','-r0');
 end
 
-
-for j=1:length(ZS_clusters)
-    ForCSVExport=[];
+ForCSVExport=cell(1,5);
+for j=1:length(ZS_clusters)    
     for region_nb=1:length(ItiaList)
         regionName=ItiaList{region_nb};
         if Clusters(region_nb,j)>0
@@ -719,23 +718,287 @@ for j=1:length(ZS_clusters)
             idx_temp2=find(idx_temp==GoodBet_temp(Clusters(region_nb,j)));
             ROI_temp=ROIsPerBrain.(regionName).ROIs;
             ROI_temp=ROI_temp(find(LinReg.(regionName).rsquared>0.1),:);
-            if ForCSVExport
+            if isempty(ForCSVExport{j})
                 CSV_temp=zeros(length(idx_temp2),4);
                 CSV_temp(:,1:3)=ROI_temp(idx_temp2,:);
                 CSV_temp(:,4)=Clusters(region_nb,j);
-                ForCSVExport=[ForCSVExport;CSV_temp];
+                ForCSVExport{j}=CSV_temp;
             else
-                ForCSVExport=zeros(length(idx_temp2),4);
-                ForCSVExport(:,1:3)=ROI_temp(idx_temp2,:);
-                ForCSVExport(:,4)=Clusters(region_nb,j);
+                CSV_temp=zeros(length(idx_temp2),4);
+                CSV_temp(:,1:3)=ROI_temp(idx_temp2,:);
+                CSV_temp(:,4)=Clusters(region_nb,j);
+                ForCSVExport{j}=[ForCSVExport{j};CSV_temp];
             end
             
-        end        
+        end
     end
-    ForCSVExport(:,3)=ForCSVExport(:,3)*2;
-    filename=strcat('ROIs_coord_clust_',num2str(j),'.csv');
-    csvwrite(filename,ForCSVExport);
 end
+
+for j=1:length(ZS_clusters)
+    CSV_temp=ForCSVExport{j};
+    CSV_temp(:,3)=CSV_temp(:,3)*2;
+    CSV_temp(:,4)=1;
+    filename=strcat('ROIs_coord_clust_',num2str(j),'.csv');
+    csvwrite(filename,CSV_temp);
+end
+
+%Pool everything
+
+region_nb=1;regionName=ItiaList{region_nb};
+ZS_pool=LinReg.(regionName).ZS_rsq;
+for region_nb=2:length(ItiaList)
+    regionName=ItiaList{region_nb};
+    ZS_pool=[ZS_pool;LinReg.(regionName).ZS_rsq];    
+end
+options = statset('UseParallel',1);
+[idxKmeans Cmap]=kmeans(ZS_pool,20,'Options',options,'Distance','cityblock','Replicates',5,'MaxIter',1000,'Display','final');
+[~,GoodBetas]=Test_Regress(Cmap,Stimuli,idxKmeans,0.3);
+
+
+%Correlate back to Kmeans to remove crap
+Threshold=0.4;
+KmeansIdx_select=idxKmeans;
+for j=1:length(GoodBetas)
+    idx_g=find(idxKmeans==GoodBetas(j));    
+    corr_temp=zeros(size(idx_g));
+    Mean_temp=mean(ZS_pool(idx_g,:),1);
+    for k=1:length(idx_g)
+        temp_corr=corrcoef(Mean_temp, ZS_pool(idx_g(k),:));
+        corr_temp(k)=temp_corr(1,2);
+    end
+    KmeansIdx_select(idx_g(find(corr_temp<=Threshold)))=0;
+end
+clearvars i j k temp ans coeff coefficients explained i Hindbrain_Mask idx_temp ish_nb
+
+figure;
+counter=1;counter2=1;xplot=floor(sqrt(length(GoodBetas)));yplot=ceil(length(GoodBetas)/xplot);coloring={'r','g','y'};
+for j=1:length(GoodBetas)  
+    idx_temp=find(KmeansIdx_select==GoodBetas(j));
+    subplot(xplot,yplot,j);plot(mean(ZS_pool(idx_temp,:),1));ylim([-3 3]);
+end
+
+% corr_temp=[];
+GoodBetas_select=GoodBetas([2 4 5 6 7 14 15 16 19 20]);
+% for j=1:length(GoodBetas_select)
+%     idx_temp=find(KmeansIdx_select==GoodBetas_select(j));
+%     Mean_temp=mean(ZS_pool(idx_temp,:),1);
+%     for i=1:length(GoodBetas_select)
+%         idx_temp2=find(KmeansIdx_select==GoodBetas_select(i));
+%         %temp_corr=corrcoef(Mean_temp, mean(ZS_pool(idx_temp2,:),1));
+%         %corr_temp(i,j)=temp_corr(1,2);
+%         corr_temp(i,j)=pdist2(Mean_temp, mean(ZS_pool(idx_temp2,:),1),'cityblock');
+%     end
+% end
+
+figure;
+counter=1;counter2=1;xplot=floor(sqrt(length(GoodBetas_select)));yplot=ceil(length(GoodBetas_select)/xplot);coloring={'r','g','y'};
+for j=1:length(GoodBetas_select)  
+    idx_temp=find(KmeansIdx_select==GoodBetas_select(j));
+    subplot(xplot,yplot,j);plot(mean(ZS_pool(idx_temp,:),1));ylim([-3 3]);xlim([1 420]);
+end
+
+KmeansIdx_merge=KmeansIdx_select;
+idx_temp=ismember(KmeansIdx_select,GoodBetas_select([1 3 10]));
+KmeansIdx_merge(idx_temp)=GoodBetas_select(1);
+idx_temp=ismember(KmeansIdx_select,GoodBetas_select([2 8]));
+KmeansIdx_merge(idx_temp)=GoodBetas_select(2);
+idx_temp=ismember(KmeansIdx_select,GoodBetas_select([4 7 9]));
+KmeansIdx_merge(idx_temp)=GoodBetas_select(4);
+
+GoodBetas_merge=GoodBetas_select([1 2 4 5 6]);
+
+%Correlate back to Kmeans to remove crap
+Threshold=0.4;
+for j=1:length(GoodBetas_merge)
+    idx_g=find(KmeansIdx_select==GoodBetas_merge(j));    
+    Mean_temp=mean(ZS_pool(idx_g,:),1);    
+    idx_g=find(KmeansIdx_merge==GoodBetas_merge(j));    
+    corr_temp=zeros(size(idx_g));
+    for k=1:length(idx_g)
+        temp_corr=corrcoef(Mean_temp, ZS_pool(idx_g(k),:));
+        corr_temp(k)=temp_corr(1,2);
+    end
+    KmeansIdx_merge(idx_g(find(corr_temp<=Threshold)))=0;
+end
+clearvars i j k temp ans coeff coefficients explained i Hindbrain_Mask idx_temp ish_nb
+
+
+
+figure;
+counter=1;counter2=1;xplot=floor(sqrt(length(GoodBetas_merge)));yplot=ceil(length(GoodBetas_merge)/xplot);coloring={'r','g','y'};
+for j=1:length(GoodBetas_merge)  
+    idx_temp=find(KmeansIdx_merge==GoodBetas_merge(j));
+    subplot(xplot,yplot,j);plot(mean(ZS_pool(idx_temp,:),1));ylim([-3 3]);xlim([1 420]);
+end
+
+colors=[0.14 1 0.14; 0.7 0.4 1];
+for i=1:length(GoodBetas_merge)
+    Fighandle=figure;
+    set(Fighandle, 'Position', [100, 100, 250, 250]);
+    idx_temp=find(KmeansIdx_merge==GoodBetas_merge(i));
+    temp=ZSAVG_pool(idx_temp,:);    
+    for k=0:2           
+            hold on;
+            meanToPlot=mean(temp(:,4+(k*41):40+(k*41)),1);
+            plot(x(4+(k*40):40+(k*40)),meanToPlot-mean(meanToPlot(1:4)),'color',colors(1,:),'LineWidth',3);axis([0 30 -3 3]);                       
+            rectangle('EdgeColor','none','FaceColor',[0.25, 0.25, 0.25, 0.4],'Position',[x(9+(k*40)) -3 1 7]);
+    end
+	hold off;    
+    print(Fighandle,strcat('_Cluster-',num2str(i)),'-dsvg','-r0');
+end
+
+i=4;
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 250, 250]);
+idx_temp=find(KmeansIdx_merge==GoodBetas_merge(i));
+temp=ZSAVG_pool(idx_temp,:);
+for k=0:2
+    hold on;
+    meanToPlot=mean(temp(:,4+(k*41):40+(k*41)),1);
+    plot(x(4+(k*40):40+(k*40)),meanToPlot-mean(meanToPlot(1:4)),'color',colors(1,:),'LineWidth',3);axis([0 30 -3 3]);
+    rectangle('EdgeColor','none','FaceColor',[0.25, 0.25, 0.25, 0.4],'Position',[x(9+(k*40)) -3 1 7]);
+end
+i=5;
+idx_temp=find(KmeansIdx_merge==GoodBetas_merge(i));
+temp=ZSAVG_pool(idx_temp,:);
+for k=0:2
+    hold on;
+    meanToPlot=mean(temp(:,4+(k*41):40+(k*41)),1);
+    plot(x(4+(k*40):40+(k*40)),meanToPlot-mean(meanToPlot(1:4)),'color',colors(2,:),'LineWidth',3);axis([0 30 -3 3]);
+    %rectangle('EdgeColor','none','FaceColor',[0.25, 0.25, 0.25, 0.4],'Position',[x(9+(k*40)) -3 1 7]);
+end
+	 
+print(Fighandle,strcat('_Cluster-','4_5'),'-dsvg','-r0');
+
+
+%----------- AVG
+
+region_nb=1;regionName=ItiaList{region_nb};
+ZSAVG_pool=LinReg.(regionName).ZS_AVG;
+for region_nb=2:length(ItiaList)
+    regionName=ItiaList{region_nb};
+    ZSAVG_pool=[ZSAVG_pool;LinReg.(regionName).ZS_AVG];    
+end
+options = statset('UseParallel',1);
+[idxKmeans_AVG Cmap_AVG]=kmeans(ZSAVG_pool,20,'Options',options,'Distance','cityblock','Replicates',5,'MaxIter',1000,'Display','final');
+
+options = statset('UseParallel',1);
+[idxKmeans_AVG Cmap_AVG]=kmeans(ZSAVG_pool,20,'Options',options,'Distance','cityblock','Replicates',5,'MaxIter',1000,'Display','final');
+
+[~,GoodBetas_AVG]=Test_Regress(Cmap_AVG,Stimuli_AVG,idxKmeans_AVG,0.3);
+%Correlate back to Kmeans to remove crap
+Threshold=0.4;
+KmeansIdx_select_AVG=idxKmeans;
+for j=1:length(GoodBetas_AVG)
+    idx_g=find(idxKmeans_AVG==GoodBetas_AVG(j));    
+    corr_temp=zeros(size(idx_g));
+    Mean_temp=mean(ZSAVG_pool(idx_g,:),1);
+    for k=1:length(idx_g)
+        temp_corr=corrcoef(Mean_temp, ZSAVG_pool(idx_g(k),:));
+        corr_temp(k)=temp_corr(1,2);
+    end
+    KmeansIdx_select_AVG(idx_g(find(corr_temp<=Threshold)))=0;
+end
+clearvars i j k temp ans coeff coefficients explained i Hindbrain_Mask idx_temp ish_nb
+
+figure;
+counter=1;counter2=1;xplot=floor(sqrt(length(GoodBetas_AVG)));yplot=ceil(length(GoodBetas_AVG)/xplot);coloring={'r','g','y'};
+for j=1:length(GoodBetas_AVG)  
+    idx_temp=find(KmeansIdx_select_AVG==GoodBetas_AVG(j));
+    subplot(xplot,yplot,j);plot(mean(ZSAVG_pool(idx_temp,:),1));ylim([-3 3]);
+end
+
+figure;imagesc(ZS_pool(find(idxKmeans_AVG==4),:));
+
+%Pool the ROIs
+region_nb=1;regionName=ItiaList{region_nb};
+ROI_temp=ROIsPerBrain.(regionName).ROIs;
+ROI_temp=ROI_temp(find(LinReg.(regionName).rsquared>0.1),:);
+ROI_pool=ROI_temp;
+for region_nb=2:length(ItiaList)
+    regionName=ItiaList{region_nb};
+    ROI_temp=ROIsPerBrain.(regionName).ROIs;
+    ROI_temp=ROI_temp(find(LinReg.(regionName).rsquared>0.1),:);
+    ROI_pool=[ROI_pool;ROI_temp];
+end
+
+for i=1:length(GoodBetas_merge)    
+    idx_temp=find(KmeansIdx_merge==GoodBetas_merge(i));
+    CSV_temp=ROI_pool(idx_temp,:);
+    CSV_temp(:,3)=CSV_temp(:,3)*2;
+    CSV_temp(:,4)=1;
+    filename=strcat('_ROIs_coord_clust_',num2str(i),'.csv');
+    csvwrite(filename,CSV_temp);
+end
+
+%Coeff pooled
+
+coefficients_pool=[];
+for i=1:length(ItiaList)
+    regionName=ItiaList{i};
+    coefficients={};
+    for idx=1:length(LinReg.(regionName).coef)
+        coef=[LinReg.(regionName).coef(idx).coef];
+        temp=coef.Properties.RowNames;temp=regexp(temp,'x(\d+)','tokens');
+        if ~isempty(temp)
+            %temp=[temp{:}];temp=[temp{:}];temp=[temp{:}];%temp=str2num(temp);
+            for coef_idx=2:height(coef)
+                %             if coef.pValue(coef_idx)<0.05
+                coefficients{idx,str2num(temp{coef_idx}{1}{1})}=coef.Estimate(coef_idx);
+                %             end
+            end
+        end
+    end
+    idxempty=cellfun('isempty',coefficients);
+    coefficients(idxempty)={0};
+    clearvars idxempty idx coef_idx coef temp
+    coefficients=cell2mat(coefficients);
+    coefficients=coefficients(find(LinReg.(regionName).rsquared>0.1),:);
+    if isempty(coefficients_pool)
+        coefficients_pool=coefficients;
+    else
+        coefficients_pool=[coefficients_pool;coefficients];
+    end
+end
+clearvars i j k temp ans coeff coefficients explained i Hindbrain_Mask idx_temp ish_nb
+mean_coef=mean(coefficients_pool,1);
+std_coef=std(coefficients_pool,1,1);    
+idx_weird=find(coefficients_pool(:,1)>mean_coef(1)+std_coef(1) & coefficients_pool(:,2)<mean_coef(2)-std_coef(2));
+idx_weird2=find(coefficients_pool(:,1)<mean_coef(1)-std_coef(1) & coefficients_pool(:,2)>mean_coef(2)+std_coef(2));
+
+x = linspace(0.25,123/4,123);
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 250, 250]);
+temp=ZSAVG_pool(idx_weird,:);
+for k=0:2
+    hold on;
+    meanToPlot=mean(temp(:,4+(k*41):40+(k*41)),1);
+    plot(x(4+(k*40):40+(k*40)),meanToPlot-mean(meanToPlot(1:4)),'color',colors(2,:),'LineWidth',3);axis([0 30 -3 3]);
+    rectangle('EdgeColor','none','FaceColor',[0.25, 0.25, 0.25, 0.4],'Position',[x(9+(k*40)) -3 1 7]);
+end
+temp=ZSAVG_pool(idx_weird2,:);
+for k=0:2
+    hold on;
+    meanToPlot=mean(temp(:,4+(k*41):40+(k*41)),1);
+    plot(x(4+(k*40):40+(k*40)),meanToPlot-mean(meanToPlot(1:4)),'color',colors(1,:),'LineWidth',3);axis([0 30 -3 3]);
+    %rectangle('EdgeColor','none','FaceColor',[0.25, 0.25, 0.25, 0.4],'Position',[x(9+(k*40)) -3 1 7]);
+end
+print(Fighandle,strcat('_Cluster-','weird'),'-dsvg','-r0');
+
+CSV_temp=ROI_pool(idx_weird,:);
+CSV_temp(:,4)=2;
+CSV_temp2=ROI_pool(idx_weird2,:);
+CSV_temp2(:,4)=1;
+CSV_temp=[CSV_temp;CSV_temp2];
+CSV_temp(:,3)=CSV_temp(:,3)*2;
+filename=strcat('_ROIs_coord_clust_','weird','.csv');
+csvwrite(filename,CSV_temp);
+clearvars i j k counter counter temp idx_temp idx_temp2 idx_weird idx_weird2 CSV_temp list_merge corr_temp CSV_temp2
+clearvars counter2 Fighandle filename Firststart GN GCaMP6 GoodBet_temp idx_g idxStart interstimulus mean_coef std_coef Mean_temp
+clearvars meanToPlot ModelCmap Nb_stimuli options region_nb regionName ROI_temp score Stim temp_corr temp_g temp_ZS Threshold x y xplot yplot
+
+
+
 
 % figure;
 % for i=1:size(Cmap_ZS_8,1)

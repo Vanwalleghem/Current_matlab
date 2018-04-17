@@ -2,6 +2,18 @@ MatFiles=dir('*analysis_matlab.mat');
 
 MatFiles=dir('*ELO_IRO*analysis_matlab.mat');
 
+idx_Fish_name={};
+for i=1:length(MatFiles)
+    name=strcat(MatFiles(i).name);
+    [Fish,~]=regexp(name,'Fish2017(\d+_E\DO)_','tokens');Fish=Fish{1};
+    if iscell(Fish)
+        Fish=Fish{1};
+    end
+    idx_Fish_name{i}=Fish;
+end
+clearvars i Fish Plane name counter
+Fish_list=unique(idx_Fish_name);
+
 %Creates ROI csv files
 Errored_ROI={};
 progressbar(0,0,0);
@@ -10,8 +22,7 @@ for fish_nb=1:length(Fish_list)
         IndexC=strfind({MatFiles.name}, Fish_list{fish_nb});
     else
         IndexC=strfind({MatFiles.name}, num2str(Fish_list(fish_nb)));
-    end   
-    
+    end       
     MatFiles_fish = find(not(cellfun('isempty', IndexC)));
     progressbar(fish_nb/length(Fish_list));
     Centroids=zeros(1,5);    

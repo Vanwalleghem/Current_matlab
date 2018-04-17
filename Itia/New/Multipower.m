@@ -1,45 +1,32 @@
-MatFiles=dir('*Audio*analysis_matlab.mat');
+MatFiles=dir('*analysis_matlab.mat');
 name=strcat(MatFiles(1).name);
 Calcium=load(name, 'DenoisedTraces');
 Calcium=Calcium.DenoisedTraces;
 MatFiles(1).number=size(Calcium,1);
-%Spikes=load(name, 'Spikes');
-%Spikes=Spikes.Spikes;
 Noise=load(name, 'Noise');
 Noise=Noise.Noise;
 Fitness=load(name, 'idx_components');
 Fitness=Fitness.idx_components+1;
 GoodCalcium=Calcium(Fitness,:);
-%GoodSpikes=Spikes(Fitness,:);
 GoodNoise=Noise(Fitness,:);
 MatFiles(1).GoodNumber=length(Fitness);
-%MatFiles(1).GC=GoodCalcium;
 for i = 2:length(MatFiles)
     name=strcat(MatFiles(i).name);
     C=load(name, 'DenoisedTraces');
     C=C.DenoisedTraces;
-%     if i==3
-%         C=[C(:,1) C(:,1) C(:,1:58)];
-%     end
-    %S=load(name, 'Spikes');
-    %S=S.Spikes;
     N=load(name, 'Noise');
     N=N.Noise;
     F=load(name, 'idx_components');
     F=F.idx_components+1;
     GC=C(F,:);
     GN=N(F,:);
-    %GS=S(F,:);
-    Noise=vertcat(Noise,N);
-    Calcium=vertcat(Calcium,C);
-    %Spikes=vertcat(Spikes,S);
+    %Noise=vertcat(Noise,N);
+    %Calcium=vertcat(Calcium,C);
     Fitness=horzcat(Fitness,F);
     GoodCalcium=vertcat(GoodCalcium,GC);
-    GoodNoise=vertcat(GoodNoise,GN);
-    %GoodSpikes=vertcat(GoodSpikes,GS);
-    MatFiles(i).number=size(Calcium,1);
-    MatFiles(i).GoodNumber=MatFiles(i-1).GoodNumber+length(F);
-    %MatFiles(i).GC=GC;
+    GoodNoise=vertcat(GoodNoise,GN);    
+    %MatFiles(i).number=size(Calcium,1);
+    MatFiles(i).GoodNumber=MatFiles(i-1).GoodNumber+length(F);    
 end
 clearvars GC C S F N name i GS Calcium Noise Fitness
 
@@ -698,3 +685,82 @@ for i=GoodBetas
     counter=counter+1;
     counter2=counter2+1;
 end
+
+%Merge and use colors of the rest
+
+colors=[0.14 1 0.14; 0.7 0.4 1;0 0.6 0.6]*256;
+idxKmeans_final_goodmemberInBrain_merge=idxKmeans_final_goodmemberInBrain;
+idxKmeans_final_goodmemberInBrain_merge(idxKmeans_final_goodmemberInBrain==GoodBetas(2))=GoodBetas(1);
+GoodBetas_merge=GoodBetas([1 4 3]);
+x = linspace(0.25,246/4,246);
+for Beta=1:length(GoodBetas_merge)
+    Fighandle=figure;
+    set(Fighandle, 'Position', [100, 100, 600, 250]);
+    idx_temp2=find(idxKmeans_final_goodmemberInBrain_merge==GoodBetas_merge(Beta));
+    for k=0:5
+        meanToPlot=mean(ZS_AVG2(idx_temp2,4+(k*41):40+(k*41)),1);
+        hold on;
+        plot(x(4+(k*40):40+(k*40)),meanToPlot-mean(meanToPlot(1:4)),'color',colors(Beta,:)/256,'LineWidth',3);axis([0 60 -3 4]);
+        if (k<5)
+            rectangle('EdgeColor','none','FaceColor',[0.25, 0.25, 0.25, 0.4-k*0.06],'Position',[x(9+(k*40)) -3 1 7]);
+        end
+    end    
+    print(Fighandle,strcat('__WB_Cluster-Multi',num2str(Beta)),'-dsvg','-r0');
+    close all;
+end
+
+Index_ELO=strfind(Fish_list, 'ELO');
+ELO_fish=find(not(cellfun('isempty', Index_ELO)));
+ERO_fish=find(cellfun('isempty', Index_ELO));
+Merged_ROIS=cell(3,1);
+for fish_nb=ERO_fish
+    if iscell(Fish_list)
+        Fish_name=Fish_list{fish_nb};
+    else
+        Fish_name=num2str(Fish_list(fish_nb));
+    end
+    IndexC=strfind({MatFiles.name}, Fish_name);
+    MatFiles_fish = find(not(cellfun('isempty', IndexC)));
+    ROI_name=strsplit(Fish_name,'Fish2017');
+    if iscell(ROI_name)
+        ROI_name=ROI_name{1};
+    end
+    IndexC=strfind({ROIs_good.name},ROI_name);
+    ROI_fish=find(not(cellfun('isempty', IndexC)));
+    ROI_fish=ROIs_good(ROI_fish).coord;ROI_fish(:,1:2)=round(ROI_fish(:,1:2));
+    ROI_fish(:,3)=round(((ROI_fish(:,3)-1)*2)+24);
+    if MatFiles_fish(1)==1
+        numbersForROIs=[1 [MatFiles(MatFiles_fish).GoodNumber]];
+    else
+        numbersForROIs=[MatFiles(MatFiles_fish(1)-1).GoodNumber+1 [MatFiles(MatFiles_fish).GoodNumber]];
+    end
+    GoodROIs=idxKmeans_final_goodmemberInBrain_merge(numbersForROIs(1):numbersForROIs(end)-1);
+    if find(GoodROIs>0)
+        counter=1;
+        for i=GoodBetas_merge
+            idx_temp=find(GoodROIs==i);
+            if idx_temp
+                if isempty(Merged_ROIS{counter})
+                    Merged_ROIS{counter}=ROI_fish(idx_temp,:);
+                else
+                    Merged_ROIS{counter}=vertcat(Merged_ROIS{counter},ROI_fish(idx_temp,:));
+                end
+            end
+            counter=counter+1;
+        end
+    end
+end
+
+ForCSVExport=[];
+for i=1:length(GoodBetas_merge)
+    ROI_temp=Merged_ROIS{i};
+    ROI_temp(:,4)=i;
+    ROI_temp(:,3)=ROI_temp(:,3)*2;
+    if ForCSVExport
+        ForCSVExport=[ForCSVExport;ROI_temp];
+    else
+        ForCSVExport=ROI_temp;
+    end    
+end
+filename=strcat('__ROIs_coord','_multipowerWB','.csv');
+csvwrite(filename,ForCSVExport);

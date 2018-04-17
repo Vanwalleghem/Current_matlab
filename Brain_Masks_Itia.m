@@ -105,9 +105,8 @@ load('_aMultipower.mat','MatFiles');
 load('_aMultipower.mat','GoodBetas');
 
 Clusters_Brain=cell(length(Fish_list),length(Zbrain_Masks),length(GoodBetas));
-
 for fish_nb=1:13
-    if iscell(Fish_list)
+if iscell(Fish_list)
         Fish_name=Fish_list{fish_nb};
     else
         Fish_name=num2str(Fish_list(fish_nb));
@@ -118,18 +117,18 @@ for fish_nb=1:13
     if iscell(ROI_name)
         ROI_name=ROI_name{1};
     end
-    IndexC=strfind({ROIs.name},ROI_name);
+    IndexC=strfind({ROIs_good.name},ROI_name);
     ROI_fish=find(not(cellfun('isempty', IndexC)));
-    ROI_fish=ROIs(ROI_fish).coord;ROI_fish(:,1:2)=round(ROI_fish(:,1:2));
+    ROI_fish=ROIs_good(ROI_fish).coord;ROI_fish(:,1:2)=round(ROI_fish(:,1:2));
     ROI_fish(:,3)=round(((ROI_fish(:,3)-1)*2)+24);%Get ROIs of fish
     if MatFiles_fish(1)==1
         numbersForROIs=[1 [MatFiles(MatFiles_fish).GoodNumber]];
     else
         numbersForROIs=[MatFiles(MatFiles_fish(1)-1).GoodNumber+1 [MatFiles(MatFiles_fish).GoodNumber]];
     end
-    GoodROIs=idxKmeans_final_goodmember(numbersForROIs(1):numbersForROIs(end)-1);
-    if find(GoodROIs>0)        
-        for brain_nb=1:length(Zbrain_Masks)            
+    GoodROIs=idxKmeans_final_goodmemberInBrain_merge(numbersForROIs(1):numbersForROIs(end)-1);
+    if find(GoodROIs>0)
+        for brain_nb=1:length(Zbrain_Masks)
             Mask=Zbrain_Masks{brain_nb,3};%Mask(:,[1 2])=Mask(:,[2 1]);
             counter=1;
             for i=GoodBetas
@@ -180,6 +179,8 @@ Sum_Clusters_brain_nozeros=Sum_Clusters_brain(:,columnsWithNoZeros);
 Brain_names_nozeros=Brain_names(columnsWithNoZeros);
 
 temp=max(cumsum(Mean_Clusters_brain_nozeros,2),[],2);
+Mean_Clusters_brain_nozeros_norm=[];
+STD_Clusters_brain_nozeros_norm=[];
 for i=1:length(GoodBetas)
     Mean_Clusters_brain_nozeros_norm(i,:)=Mean_Clusters_brain_nozeros(i,:)/temp(i);
     STD_Clusters_brain_nozeros_norm(i,:)=STD_Clusters_brain_nozeros(i,:)/temp(i);
@@ -207,7 +208,7 @@ for fish_nb=1:13
     end
     IndexC=strfind({ROIs.name},ROI_name);
     ROI_fish=find(not(cellfun('isempty', IndexC)));
-    ROI_fish=ROIs(ROI_fish).coord;ROI_fish(:,1:2)=round(ROI_fish(:,1:2));
+    ROI_fish=ROIs_good(ROI_fish).coord;ROI_fish(:,1:2)=round(ROI_fish(:,1:2));
     ROI_fish(:,3)=round(((ROI_fish(:,3)-1)*2)+24);%Get ROIs of fish
     if MatFiles_fish(1)==1
         numbersForROIs=[1 [MatFiles(MatFiles_fish).GoodNumber]];
@@ -255,7 +256,8 @@ Mean_Null_brain_nozeros=Mean_Null_brain(:,columnsWithNoZeros);
 Sum_Null_brain_nozeros=Sum_Null_brain(:,columnsWithNoZeros);
 STD_Null_brain_nozeros=STD_Null_brain(:,columnsWithNoZeros);
 
-
+Mean_Null_brain_nozeros_norm=[];
+STD_Null_brain_nozeros_norm=[];
 temp=max(cumsum(Mean_Null_brain_nozeros,2),[],2);
 for i=1:length(GoodBetas)
     Mean_Null_brain_nozeros_norm(i,:)=Mean_Null_brain_nozeros(i,:)/temp(i);
@@ -266,6 +268,8 @@ STD_Null_brain_nozeros_norm=STD_Null_brain_nozeros_norm*100;
 
 Sorted_Brain=zeros(size(Mean_Clusters_brain_nozeros));
 Idx_Brain=zeros(size(Mean_Clusters_brain_nozeros));
+Sorted_Brain_perClust=[];
+Idx_Brain_perClust=[];
 for i=1:length(GoodBetas)
     [Sorted_Brain_perClust(i,:) Idx_Brain_perClust(i,:)]=sort(Mean_Clusters_brain_nozeros_norm(i,:));
 end
@@ -280,54 +284,14 @@ temp=sum(Sorted_Null,1);
 %Just the BigRegions
 BigBrainRegions=[76 113 259 274 294];
 Clusters_BigBrain=cell(length(Fish_list),length(BigBrainRegions),length(GoodBetas));
-
-for fish_nb=1:13
-    if iscell(Fish_list)
-        Fish_name=Fish_list{fish_nb};
-    else
-        Fish_name=num2str(Fish_list(fish_nb));
-    end
-    IndexC=strfind({MatFiles.name}, Fish_name);
-    MatFiles_fish = find(not(cellfun('isempty', IndexC)));
-    ROI_name=strsplit(Fish_name,'Fish2017');
-    if iscell(ROI_name)
-        ROI_name=ROI_name{1};
-    end
-    IndexC=strfind({ROIs.name},ROI_name);
-    ROI_fish=find(not(cellfun('isempty', IndexC)));
-    ROI_fish=ROIs(ROI_fish).coord;ROI_fish(:,1:2)=round(ROI_fish(:,1:2));
-    ROI_fish(:,3)=round(((ROI_fish(:,3)-1)*2)+24);%Get ROIs of fish
-    if MatFiles_fish(1)==1
-        numbersForROIs=[1 [MatFiles(MatFiles_fish).GoodNumber]];
-    else
-        numbersForROIs=[MatFiles(MatFiles_fish(1)-1).GoodNumber+1 [MatFiles(MatFiles_fish).GoodNumber]];
-    end
-    GoodROIs=idxKmeans_final_goodmember(numbersForROIs(1):numbersForROIs(end)-1);
-    if find(GoodROIs>0)        
-        for brain_nb=1:length(BigBrainRegions)            
-            Mask=Zbrain_Masks{BigBrainRegions(brain_nb),3};%Mask(:,[1 2])=Mask(:,[2 1]);
-            counter=1;
-            for i=GoodBetas
-                idx_temp=find(GoodROIs==i);
-                if idx_temp
-                    Coords=ROI_fish(idx_temp,:);
-                    IsInMask_temp=ismember(Coords,Mask,'rows');Clusters_BigBrain{fish_nb,brain_nb,counter}=find(IsInMask_temp==1)';                        
-                end
-                counter=counter+1;
-            end
-        end
-    end
-end
-clearvars GoodROIs Mask counter idx_temp Coords IsInMask IsInMask_temp
-
 Clusters_BigBrain=Clusters_Brain(:,BigBrainRegions,:);
 
-Nb_Clusters_Bigbrain=zeros(size(Clusters_BigBrain));
+Nb_Clusters_Bigbrain=nan(size(Clusters_BigBrain));
 Mean_Clusters_Bigbrain=zeros(length(GoodBetas),length(BigBrainRegions));
 STD_Clusters_Bigbrain=zeros(length(GoodBetas),length(BigBrainRegions));
 for k=1:size(Clusters_BigBrain,3)
     for j=1:size(Clusters_BigBrain,2)
-        temp=zeros(1,length(Fish_list));
+        temp=nan(1,length(Fish_list));
         for i=1:size(Clusters_BigBrain,1)
             temp(i)=length(Clusters_BigBrain{i,j,k});
             Nb_Clusters_Bigbrain(i,j,k)=length(Clusters_BigBrain{i,j,k});
@@ -337,8 +301,12 @@ for k=1:size(Clusters_BigBrain,3)
     end
 end
 
+Nb_Clusters_Bigbrain(Nb_Clusters_Bigbrain==0)=nan;
+
 temp=Nb_Clusters_Bigbrain;temp(temp==0)=nan;
-temp2=temp(:,:,1);
+temp2=temp(:,:,3);
+Brain_names(BigBrainRegions)
+
 
 % Results per class of brain region
 Classes_brain=unique(Zbrain_Masks(:,1));
@@ -362,7 +330,8 @@ for i=1:3:length(GoodBetas)*3
     PrismReady(i,:)=ClustersPerClass.Diencephalon_sorted(ceil(i/3),:);
     PrismReady(i+1,:)=STD_Clusters_brain(ceil(i/3),idx_temp);
 end
-Brain_prismNames=Brain_names(idx_temp);
+PrismReady=PrismReady';
+Brain_prismNames=Brain_names(idx_temp)';
 
 idx_temp=ClustersPerClass.Mesencephalon_sortedIdx;
 PrismReady=ones(length(GoodBetas)*3,length(idx_temp))*13;
@@ -370,7 +339,8 @@ for i=1:3:length(GoodBetas)*3
     PrismReady(i,:)=ClustersPerClass.Mesencephalon_sorted(ceil(i/3),:);
     PrismReady(i+1,:)=STD_Clusters_brain(ceil(i/3),idx_temp);
 end
-Brain_prismNames=Brain_names(idx_temp);
+PrismReady=PrismReady';
+Brain_prismNames=Brain_names(idx_temp)';
 
 idx_temp=ClustersPerClass.Telencephalon_sortedIdx;
 PrismReady=ones(length(GoodBetas)*3,length(idx_temp))*13;
@@ -378,7 +348,8 @@ for i=1:3:length(GoodBetas)*3
     PrismReady(i,:)=ClustersPerClass.Telencephalon_sorted(ceil(i/3),:);
     PrismReady(i+1,:)=STD_Clusters_brain(ceil(i/3),idx_temp);
 end
-Brain_prismNames=Brain_names(idx_temp);
+PrismReady=PrismReady';
+Brain_prismNames=Brain_names(idx_temp)';
 
 idx_temp=ClustersPerClass.Rhombencephalon_sortedIdx;
 PrismReady=ones(length(GoodBetas)*3,length(idx_temp))*13;
@@ -386,7 +357,42 @@ for i=1:3:length(GoodBetas)*3
     PrismReady(i,:)=ClustersPerClass.Rhombencephalon_sorted(ceil(i/3),:);
     PrismReady(i+1,:)=STD_Clusters_brain(ceil(i/3),idx_temp);
 end
-Brain_prismNames=Brain_names(idx_temp);
+PrismReady=PrismReady';
+Brain_prismNames=Brain_names(idx_temp)';
 
+%Major brain
+Brain_List=[4 12 13 14 34 40 41 55 56 57 58 59 65 66 67 68 69 70 71 73 74 75 77 79 80 90 91 92 93 96 97 101 102 103 105 106 107 108 109 123 124 125 126 131 133 174 175 180 181 182 184 185 200 216 217 218 219 220 221 222 223 224 237 274 275 281 282 283 290];
+Clusters_List=Clusters_Brain(:,Brain_List,:);
+Nb_Clusters_Brain_List=zeros(size(Clusters_List));
+Mean_Clusters_Brain_List=zeros(length(GoodBetas),length(Brain_List));
+STD_Clusters_Brain_List=zeros(length(GoodBetas),length(Brain_List));
+Sum_Clusters_Brain_List=zeros(length(GoodBetas),length(Brain_List));
+for k=1:size(Clusters_List,3)
+    for j=1:size(Clusters_List,2)
+        temp=zeros(1,length(Fish_list));
+        for i=1:size(Clusters_List,1)
+            temp(i)=length(Clusters_List{i,j,k});
+            Nb_Clusters_Brain_List(i,j,k)=length(Clusters_List{i,j,k});
+        end
+        Mean_Clusters_Brain_List(k,j)=mean(temp);
+        STD_Clusters_Brain_List(k,j)=std(temp);
+        Sum_Clusters_Brain_List(k,j)=sum(temp);      
+    end
+end
 
+[Sorted_Brain Idx_Brain]=sortrows(Mean_Clusters_Brain_List');Sorted_Brain=Sorted_Brain';
+Sorted_STD=STD_Clusters_Brain_List(:,Idx_Brain);
+Sorted_names=Brain_names(Brain_List(Idx_Brain));
+Sorted_sum=Sum_Clusters_Brain_List(:,Idx_Brain);
 
+Prismtemp=[];
+for i=1:3
+    Prismtemp((i*3)-2,:)=Sorted_Brain(i,:);
+    Prismtemp((i*3)-1,:)=Sorted_STD(i,:);
+    Prismtemp((i*3),:)=13;
+end
+Prismtemp=Prismtemp';
+
+Sorted_Clusters_List=Clusters_List(:,Idx_Brain,:);
+Sorted_Clusters_List=cellfun('length', Sorted_Clusters_List);
+temp=squeeze(Sorted_Clusters_List(:,:,1))';
