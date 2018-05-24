@@ -41,7 +41,7 @@ clearvars x y PixelList info num_images image_temp Brain_region SubRegion fname 
 ItiaList={'Thalamus','Cerebellum','NucMLF','Semicircularis','Telencephalon','Tectum','Longitudinalis','Tegmentum','Habenula','Hindbrain','MON'};
 i=11;
 regionName=ItiaList{i};
-Mask=MON_Masks{10,3};
+Mask=MON_Masks{1,3};
 for fish_nb=1:length(Fish_list)
     progressbar([],fish_nb/length(Fish_list));
     if iscell(Fish_list)
@@ -117,7 +117,7 @@ end
 
 %Kmeans of all
 options = statset('UseParallel',1); 
-for j=1:11
+for j=11
     regionName=ItiaList{j};
     idx_temp=find(LinReg.(regionName).rsquared>0.1);
     LinReg.(regionName).ZS_rsq=ZS_Brain.(regionName)(idx_temp,:);
@@ -127,7 +127,7 @@ for j=1:11
 end
 
 %Get the good ones
-for j=1:11
+for j=11
     regionName=ItiaList{j};
     [~,LinReg.(regionName).GoodBetas]=Test_Regress( LinReg.(regionName).KmeansCenter,Stimuli,LinReg.(regionName).KmeansIdx,0.5);
 end
@@ -238,7 +238,7 @@ LinReg.(regionName).KmeansIdx_select_AVG=idx_temp;
 
 figure;
 counter=1;xplot=length(ItiaList);yplot=6;counter2=1;
-for i=1:length(ItiaList)
+for i=11:length(ItiaList)
     regionName=ItiaList{i};
     idx_temp=LinReg.(regionName).KmeansIdx_select_AVG;
     GoodBet_temp=LinReg.(regionName).GoodBetas_AVG;
@@ -250,6 +250,13 @@ for i=1:length(ItiaList)
     counter2=counter2+yplot;
 end
 
+GoodBet_temp=LinReg.(regionName).GoodBetas_AVG;
+KmeansIdx_merge=LinReg.(regionName).KmeansIdx_AVG;
+idx_temp=ismember(KmeansIdx_merge,GoodBet_temp([1 4 5]));
+KmeansIdx_merge(idx_temp)=GoodBet_temp(1);
+LinReg.(regionName).GoodBeta_merge=GoodBet_temp([1 3]);
+LinReg.(regionName).KmeansIdx_merge=KmeansIdx_merge;
+
 i=11;colors{i}=[0.14 1 0.14; 0.7 0.4 1];regionName=ItiaList{i};LinReg.(regionName).GoodBetas_AVG_final=LinReg.(regionName).GoodBetas_AVG([1 2]);
 %Graph figure with thick lines and no SD
 counter=1;xplot=3;yplot=1;
@@ -259,8 +266,8 @@ Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 600, 250]);
 counter=1;
 regionName=ItiaList{region_nb};
-idx_temp=LinReg.(regionName).KmeansIdx_select_AVG;
-GoodBet_temp=LinReg.(regionName).GoodBetas_AVG_final;
+idx_temp=LinReg.(regionName).KmeansIdx_merge;
+GoodBet_temp=LinReg.(regionName).GoodBeta_merge;
 if region_nb==5
     counter=counter+1;
 end

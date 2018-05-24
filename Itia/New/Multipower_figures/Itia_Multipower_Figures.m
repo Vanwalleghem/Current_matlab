@@ -608,50 +608,45 @@ ELO_fish=find(not(cellfun('isempty', Index_ELO)));
 ERO_fish=find(cellfun('isempty', Index_ELO));counter=1;
 ELO_coord_count=nan(length(ELO_fish),length(ItiaList)*2,3);
 ERO_coord_count=nan(length(ERO_fish),length(ItiaList)*2,3);
-for i=1:length(ItiaList)    
+for i=1:length(ItiaList)
     regionName=ItiaList{i};
     idx_temp=find(LinReg.(regionName).rsquared>0.1);
     ROIs_temp=ROIsPerBrain.(regionName).ROIs(idx_temp,:);
     Mask_limits(1,:)=min(ROIsPerBrain.(regionName).ROIs,[],1);
     Mask_limits(2,:)=max(ROIsPerBrain.(regionName).ROIs,[],1);
     Numbers=ROIsPerBrain.(regionName).Numbers;Numbers=[0 Numbers];
-    counter=1;
-    Prism_temp=nan(2,length(LinReg.(regionName).GoodBetas_AVG_final)*3);
-    goodROIs_ELO_y=[];
-    goodROIs_ERO_y=[];
-    for j=1:length(LinReg.(regionName).GoodBetas_AVG_final)
-        idx_goodROIs=find(LinReg.(regionName).KmeansIdx_select_AVG==LinReg.(regionName).GoodBetas_AVG_final(j));
-        idx_goodROIs_correct=idx_temp(idx_goodROIs);
-        idx_ELO=[];
-        idx_ERO=[];
+    counter=1;    
+    if i>10
+        nb_clusters=length(LinReg.(regionName).GoodBeta_merge);        
+    else
+        nb_clusters=length(LinReg.(regionName).GoodBetas_AVG_final);        
+    end    
+    for j=1:nb_clusters
+        if i>10            
+            idx_goodROIs=find(LinReg.(regionName).KmeansIdx_merge==LinReg.(regionName).GoodBeta_merge(j));
+            idx_goodROIs_correct=idx_temp(idx_goodROIs);
+        else            
+            idx_goodROIs=find(LinReg.(regionName).KmeansIdx_select_AVG==LinReg.(regionName).GoodBetas_AVG_final(j));
+            idx_goodROIs_correct=idx_temp(idx_goodROIs);
+        end
         counter_ELO=1;
         counter_ERO=1;
         for fishNb=1:length(Fish_list)
-            if Index_ELO{fishNb}                
+            if Index_ELO{fishNb}
                 idx_ELOtemp=find(Numbers(fishNb) < idx_goodROIs_correct & idx_goodROIs_correct <= Numbers(fishNb+1));
-                if isempty(idx_ELO)
-                    idx_ELO=idx_ELOtemp;
-                else
-                    idx_ELO=horzcat(idx_ELO, idx_ELOtemp);
-                end
                 ROIs_ELO=ROIsPerBrain.(regionName).ROIs(idx_goodROIs_correct(idx_ELOtemp),2);
                 ELO_coord_count(counter_ELO,(i*2)-1,j)=sum(ROIs_ELO>Midline);
-                ELO_coord_count(counter_ELO,i*2,j)=sum(ROIs_ELO<Midline);                
+                ELO_coord_count(counter_ELO,i*2,j)=sum(ROIs_ELO<Midline);
                 counter_ELO=counter_ELO+1;
             else
                 idx_EROtemp=find(Numbers(fishNb) < idx_goodROIs_correct & idx_goodROIs_correct <= Numbers(fishNb+1));
-                if isempty(idx_ERO)
-                    idx_ERO=idx_EROtemp;
-                else
-                    idx_ERO=horzcat(idx_ERO, idx_EROtemp);
-                end
                 ROIs_ERO=ROIsPerBrain.(regionName).ROIs(idx_goodROIs_correct(idx_EROtemp),2);
                 ERO_coord_count(counter_ERO,(i*2)-1,j)=sum(ROIs_ERO>Midline);
                 ERO_coord_count(counter_ERO,i*2,j)=sum(ROIs_ERO<Midline);
                 counter_ERO=counter_ERO+1;
             end
-        end  
-    end    
+        end
+    end
 end
 clearvars goodROIs ROIs_temp regionName idx_temp Template2 idx_slice roi_nb xcoord ycoord circlePixels image_temp columnsInImage rowsInImage col corr_temp Fighdandle framerate GoodBet_temp H idx_g Model_cereb
 clearvars counter_ERO ROIs_ERO ROIs_ELO counter_ELO Mask_limits Numbers idx_EROtemp idx_ELOtemp idx_goodROIs_correct idx_goodROIs counter counter2

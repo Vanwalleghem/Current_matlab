@@ -11,8 +11,9 @@ Fitness=load(name, 'idx_components');
 Fitness=Fitness.idx_components+1;
 GoodCalcium=Calcium(Fitness,:);
 GoodSpikes=Spikes(Fitness,:);
+GoodNoise=Noise(Fitness,:);
 MatFiles(1).GoodNumber=length(Fitness);
-MatFiles(1).GC=GoodCalcium;
+%MatFiles(1).GC=GoodCalcium;
 for i = 2:length(MatFiles)
     name=strcat(MatFiles(i).name);
     C=load(name, 'DenoisedTraces');
@@ -28,15 +29,17 @@ for i = 2:length(MatFiles)
     F=F.idx_components+1;
     GC=C(F,:);
     GS=S(F,:);
+    GN=N(F,:);
     Noise=vertcat(Noise,N);
     Calcium=vertcat(Calcium,C);
     Spikes=vertcat(Spikes,S);
     Fitness=horzcat(Fitness,F);
     GoodCalcium=vertcat(GoodCalcium,GC);
     GoodSpikes=vertcat(GoodSpikes,GS);
+    GoodNoise=vertcat(GoodNoise,GN);
     MatFiles(i).number=size(Calcium,1);
     MatFiles(i).GoodNumber=MatFiles(i-1).GoodNumber+length(F);
-    MatFiles(i).GC=GC;
+    %MatFiles(i).GC=GC;
 end
 clearvars GC C S F N name i GS;
 
@@ -65,7 +68,7 @@ Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1200, 900]);
 imagesc(x,y,ZS(randperm(size(ZS,1)),:),[-0.5 5]);colormap hot;set(gca,'YTickLabel',[]);
 
-Numbers=[1 [MatFiles.GoodNumber]];
+Numbers=[0 [MatFiles.GoodNumber]];
 counter=1;
 idx_Plane=nan(length(GoodCalcium),1);
 idx_Fish=nan(length(GoodCalcium),1);
@@ -89,8 +92,8 @@ for i=1:length(MatFiles)
     %[Plane,~]=regexp(name,'\d+_(\d+)_','tokens','match');Plane=str2num(Plane{1}{1});
     %[Fish,~]=regexp(name,'(\d+)_\d+_','tokens','match');Fish=str2num(Fish{1}{1});
    
-    idx_Plane(Numbers(i):Numbers(i+1))=Plane;
-    idx_Fish(Numbers(i):Numbers(i+1))=Fish;
+    idx_Plane(Numbers(i)+1:Numbers(i+1))=Plane;
+    idx_Fish(Numbers(i)+1:Numbers(i+1))=Fish;
 end
 clearvars i Fish Plane name counter
 
@@ -484,11 +487,10 @@ pVals_KS(i:end)=nan;
 KS_idx(isfinite(pVals_KS))=[];
 Planes_KS_pvalues(KS_idx)=1;
 
-%Creates ROI csv files
+%Creates ROI csv files with the correction for the crop
 Errored_ROI={};
 progressbar(0,0,0);
-for fish_nb=1:length(Fish_list)
-    
+for fish_nb=1:2%3:length(Fish_list)    
     IndexC=find(idx_Fish==Fish_list(fish_nb));
     IndexC=ismember(ROIs_idx,IndexC);
     MatFiles_fish = find(IndexC>0);
@@ -498,6 +500,7 @@ for fish_nb=1:length(Fish_list)
         numbersForROIs=[MatFiles(MatFiles_fish(1)-1).GoodNumber [MatFiles(MatFiles_fish).GoodNumber]];
     end
     Centroids=[];
+    counter=1;
     for plane=1:length(MatFiles_fish)
         filename=MatFiles(MatFiles_fish(plane)).name;
         if findstr(filename,'2planes')
@@ -510,18 +513,29 @@ for fish_nb=1:length(Fish_list)
         imagename=strcat('AVG_',imagename{1},'.tif');
         image=double(imread(imagename));image=image/max(max(image));image=image*128;
         ROI=reshape(full(ROI),size(image,1),size(image,2),size(ROI,2));
-        if plane==1
-            temp_roi=0;
-        else
-            temp_roi=temp_roi+size(ROI,3);
+        idx_name=strcat(num2str(Fish_list(fish_nb)),'_',num2str(slice));
+        Transfo_idx = ~cellfun('isempty',strfind(cellstr(FileName),strcat(idx_name,'.tif')));Transfo_idx=find(Transfo_idx>0);
+        if isempty(Transfo_idx)
+            FileName
+            break
+        end
+        Transfo_tmp=TransfoMatrix(Transfo_idx,:);
+        if Transfo_tmp(1)<0
+            Transfo_tmp(1)=1080+Transfo_tmp(1);
+        end
+        if Transfo_tmp(2)<-5
+            Transfo_tmp(2)=1280+Transfo_tmp(2);
         end
         for roi_nb=1:size(ROI,3)
-            temp=regionprops(uint16(squeeze(ROI(:,:,roi_nb)))==max(max(uint16(squeeze(ROI(:,:,roi_nb))))),'Centroid');
-            Centroids(roi_nb+temp_roi,5)=roi_nb+temp_roi;
-            temp=temp.Centroid;
-            Centroids(roi_nb+temp_roi,1:2)=temp;
-            Centroids(roi_nb+temp_roi,3)=(slice/20)+1;
+            test=ROI(:,:,roi_nb);
+            [M I]=max(test(:));
+            [I_row I_col]=ind2sub(size(test),I);            
+            Centroids(counter,5)=counter;
+            temp=[I_col I_row];
+            Centroids(counter,1:2)=temp+Transfo_tmp([2 1]);
+            Centroids(counter,3)=(slice/20)+1;
             progressbar([],[],roi_nb/size(ROI,3));
+            counter=counter+1;
         end
         progressbar([],fish_nb/length(MatFiles_fish));
     end
@@ -532,4 +546,160 @@ for fish_nb=1:length(Fish_list)
     end
     csvwrite(image_name,Centroids);
     progressbar(fish_nb/length(Fish_list));
+end
+
+
+
+idx_name=strcat(num2str(Fish_list(fish_nb)),'_',num2str(slice));
+idx = all(ismember(FileName,idx_name),2);find(idx>0)
+
+strfind(FileName,idx_name)
+
+
+%Make individual figures for FWD and BWD in each cluster
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1200, 400]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+counter=1;counter2=1;xplot=1;yplot=3;
+back=[55 255 455];
+fwd=[155 355 555];
+StimLength=100;
+x = linspace(0.2,StimLength/5,StimLength);
+for i=GoodBetas_select    
+    tempPlot=GoodClusters_goodmembers(counter).mean;
+    BackPlot=zeros(3,StimLength);
+    FwdPlot=zeros(3,StimLength);
+    for j=1:3
+        BackPlot(j,:)=tempPlot(back(j):back(j)+99);
+        FwdPlot(j,:)=tempPlot(fwd(j):fwd(j)+99);
+    end
+    temp=mean(BackPlot,1);std_temp=std(BackPlot,1,1);
+    subplot(xplot,yplot,1);
+    H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
+    H.mainLine.Color=colors(counter,:)/256;
+    H.patch.FaceColor=colors(counter,:)/256;
+    H.edge(1).Color=colors(counter,:)/256;
+    H.edge(2).Color=colors(counter,:)/256;
+    H.mainLine.LineWidth=3;
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+    temp=mean(FwdPlot,1);std_temp=std(FwdPlot,1,1);
+    subplot(xplot,yplot,2);
+    H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
+    H.mainLine.Color=colors(counter,:)/256;
+    H.patch.FaceColor=colors(counter,:)/256;
+    H.edge(1).Color=colors(counter,:)/256;
+    H.edge(2).Color=colors(counter,:)/256;    
+    H.mainLine.LineWidth=3;
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+    subplot(xplot,yplot,3);
+    RespBWD=max(BackPlot,[],2);RespBWD=RespBWD+abs(min(RespBWD));
+    RespFWD=max(FwdPlot,[],2);RespFWD=RespFWD+abs(min(RespFWD));
+    %bar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),'FaceColor',colors(counter,:)/256);hold on; ylim([-1 1]);
+    scatter(zeros(1,13)+1,DSI(:,counter,1),[],colors(counter,:)/256);hold on;ylim([-1.1 1.1]);set(gca,'xtick',[]);set(gca,'xcolor','none')
+    errorbar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),nanstd(DSI(:,counter,1)),'.','LineWidth',2,'MarkerEdgeColor',colors(counter,:)/256,'MarkerFaceColor',colors(counter,:)/256,'Color',colors(counter,:)/256);view([90 -90]);hold off    
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+    print(Fighandle,strcat('Cluster_basic_',num2str(counter),'.svg'),'-dsvg','-r0');    
+    counter=counter+1;
+end
+
+%look for inhibs
+ZS=zscore(GoodCalcium+GoodNoise,1,2);
+
+parfor i=1:size(ZS,1)
+    mdl=fitlm(flow',ZS(i,:));
+    model_DF_Thr5(i).coef=mdl.Coefficients;
+    model_DF_Thr5(i).rsquared=mdl.Rsquared.Adjusted;
+end
+
+coefficients={};
+for idx=1:length(model_DF_Thr5)
+    coef=[model_DF_Thr5(idx).coef];
+    temp=coef.Properties.RowNames;temp=regexp(temp,'x(\d+)','tokens');
+    if ~isempty(temp)
+        %temp=[temp{:}];temp=[temp{:}];temp=[temp{:}];%temp=str2num(temp);
+        for coef_idx=2:height(coef)
+            if coef.pValue(coef_idx)<0.05
+                coefficients{idx,str2num(temp{coef_idx}{1}{1})}=coef.Estimate(coef_idx);
+            end
+        end
+    end
+end
+idxempty=cellfun('isempty',coefficients);
+coefficients(idxempty)={0};
+clearvars idxempty idx coef_idx coef temp
+coefficients=cell2mat(coefficients);
+
+CSV_Files=dir('_2Warped*_Resized.csv');
+ROIs=struct();
+for i=1:length(CSV_Files);
+    temp=csvread(CSV_Files(i).name,1);   
+    Fishname=regexp(CSV_Files(i).name,'ROIsFish_(\d+)_Resized.csv','tokens');Fishname=Fishname{1}{1};    
+    ROIs(i).name=Fishname;    
+    ROIs(i).coord=temp(:,1:3);
+    ROIs(i).idx=temp(:,5);    
+end
+clearvars i temp CSV_Files Fishname
+
+i=1;ROI_pool=ROIs(i).coord;
+for i=2:length(ROIs);
+    ROI_pool=[ROI_pool; ROIs(i).coord];
+end
+
+for i=1:length(GoodBetas_select)
+    idx_temp=GoodClusters_goodmembers(i).idx;
+    temp=find(idx_temp<length(ROI_pool));
+    CSV_temp=ROI_pool(idx_temp(temp),:);
+    CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+    CSV_temp(:,4)=1;
+    filename=strcat('__Coords_clust_Basic',num2str(i),'.csv');
+    csvwrite(filename,CSV_temp);
+end
+
+CSV_temp=ROIs(1).coord;
+CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+CSV_temp(:,4)=1;
+filename=strcat('__WB_F12','.csv');
+csvwrite(filename,CSV_temp);
+
+CSV_temp=ROIs(2).coord;
+CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+CSV_temp(:,4)=1;
+filename=strcat('__WB_F13','.csv');
+csvwrite(filename,CSV_temp);
+
+CSV_temp=ROIs(3).coord;
+CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+CSV_temp(:,4)=1;
+filename=strcat('__WB_F14','.csv');
+csvwrite(filename,CSV_temp);
+
+idx_inhib=find(min(coefficients,[],2)<-1);
+figure;imagesc(ZS(idx_inhib,:),[-2 2]);colormap hot;options = statset('UseParallel',1);
+[idxKmeans_inhib Cmap_inhib]=kmeans(ZS(idx_inhib,:),4,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
+[~,GoodBetas_inhib]=Test_Regress(Cmap_inhib,flow,idxKmeans_inhib,0.4);
+
+GoodInhib_goodmembers=[];Threshold=0.5;
+idxKmeans_ZS_goodmembers=zeros(1,size(GoodCalcium,1));
+for i=1:length(GoodBetas_inhib)    
+    ZS_temp=ZS(idx_inhib(find(idxKmeans_inhib==GoodBetas_inhib(i))),:);
+    corr_temp=zeros(1,length(ZS_temp));
+    for jj=1:size(ZS_temp,1)
+        temp_corr=corrcoef(Cmap_inhib(GoodBetas_inhib(i),:), ZS_temp(jj,:));
+        corr_temp(jj)=temp_corr(1,2);
+    end    
+    GoodInhib_goodmembers(i).ZS=ZS_temp(find(corr_temp>Threshold),:);
+    idx_temp=idx_inhib(find(idxKmeans_inhib==GoodBetas_inhib(i)));
+    GoodInhib_goodmembers(i).idx=idx_temp(find(corr_temp>Threshold));
+    GoodInhib_goodmembers(i).mean=mean(GoodInhib_goodmembers(i).ZS,1);
+    GoodInhib_goodmembers(i).STD=std(GoodInhib_goodmembers(i).ZS,1,1);   
+end
+
+for i=1:length(GoodBetas_inhib)
+    idx_temp=GoodInhib_goodmembers(i).idx;
+    temp=find(idx_temp<length(ROI_pool));
+    CSV_temp=ROI_pool(idx_temp(temp),:);
+    CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+    CSV_temp(:,4)=1;
+    filename=strcat('__Coords_clust_BasicInhib',num2str(i),'.csv');
+    csvwrite(filename,CSV_temp);
 end
