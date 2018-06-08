@@ -852,6 +852,7 @@ Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 250, 250]);
 idx_temp=find(KmeansIdx_merge==GoodBetas_merge(i));
 temp=ZSAVG_pool(idx_temp,:);
+
 for k=0:2
     hold on;
     meanToPlot=mean(temp(:,4+(k*41):40+(k*41)),1);
@@ -867,6 +868,8 @@ for k=0:2
     plot(x(4+(k*40):40+(k*40)),meanToPlot-mean(meanToPlot(1:4)),'color',colors(2,:),'LineWidth',3);axis([0 30 -3 3]);
     %rectangle('EdgeColor','none','FaceColor',[0.25, 0.25, 0.25, 0.4],'Position',[x(9+(k*40)) -3 1 7]);
 end
+
+
 	 
 print(Fighandle,strcat('_Cluster-','4_5'),'-dsvg','-r0');
 
