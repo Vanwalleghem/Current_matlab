@@ -487,10 +487,11 @@ pVals_KS(i:end)=nan;
 KS_idx(isfinite(pVals_KS))=[];
 Planes_KS_pvalues(KS_idx)=1;
 
-%Creates ROI csv files with the correction for the crop
+load('D:\Pictures\processed\Flow\Basic\transformation_crop_to_full.mat')
+Twoplanes_transfo=load('D:\Pictures\processed\Flow\Basic\transformation_crop_to_full_2planes.mat')
 Errored_ROI={};
 progressbar(0,0,0);
-for fish_nb=1:2%3:length(Fish_list)    
+for fish_nb=1:(Fish_list)    
     IndexC=find(idx_Fish==Fish_list(fish_nb));
     IndexC=ismember(ROIs_idx,IndexC);
     MatFiles_fish = find(IndexC>0);
@@ -505,26 +506,38 @@ for fish_nb=1:2%3:length(Fish_list)
         filename=MatFiles(MatFiles_fish(plane)).name;
         if findstr(filename,'2planes')
             [slice,~]=regexp(filename,'f\d-(\d+)um_','tokens','match');slice=str2num(slice{1}{1});
+            idx_name=strcat(num2str(Fish_list(fish_nb)),'-',num2str(slice));
+            Transfo_idx = ~cellfun('isempty',strfind(cellstr(Twoplanes_transfo.FileName),idx_name));Transfo_idx=find(Transfo_idx>0);
         else
             [slice,~]=regexp(filename,'\d+_(\d+)_','tokens','match');slice=str2num(slice{1}{1});
+            idx_name=strcat(num2str(Fish_list(fish_nb)),'_',num2str(slice));
+            Transfo_idx = ~cellfun('isempty',strfind(cellstr(FileName),strcat(idx_name,'.tif')));Transfo_idx=find(Transfo_idx>0);
         end
         ROI=All_ROIs{MatFiles_fish(plane)};
         imagename=regexp(filename,'_output_analysis','split');
         imagename=strcat('AVG_',imagename{1},'.tif');
         image=double(imread(imagename));image=image/max(max(image));image=image*128;
-        ROI=reshape(full(ROI),size(image,1),size(image,2),size(ROI,2));
-        idx_name=strcat(num2str(Fish_list(fish_nb)),'_',num2str(slice));
-        Transfo_idx = ~cellfun('isempty',strfind(cellstr(FileName),strcat(idx_name,'.tif')));Transfo_idx=find(Transfo_idx>0);
+        ROI=reshape(full(ROI),size(image,1),size(image,2),size(ROI,2));        
         if isempty(Transfo_idx)
             FileName
             break
         end
-        Transfo_tmp=TransfoMatrix(Transfo_idx,:);
-        if Transfo_tmp(1)<0
-            Transfo_tmp(1)=1080+Transfo_tmp(1);
-        end
-        if Transfo_tmp(2)<-5
-            Transfo_tmp(2)=1280+Transfo_tmp(2);
+        if findstr(filename,'2planes')
+            Transfo_tmp=Twoplanes_transfo.TransfoMatrix(Transfo_idx,:);
+             if Transfo_tmp(1)<-5
+                Transfo_tmp(1)=830+Transfo_tmp(1);
+            end
+            if Transfo_tmp(2)<-5
+                Transfo_tmp(2)=1120+Transfo_tmp(2);
+            end
+        else
+            Transfo_tmp=TransfoMatrix(Transfo_idx,:);
+            if Transfo_tmp(1)<-5
+                Transfo_tmp(1)=1080+Transfo_tmp(1);
+            end
+            if Transfo_tmp(2)<-5
+                Transfo_tmp(2)=1280+Transfo_tmp(2);
+            end
         end
         for roi_nb=1:size(ROI,3)
             test=ROI(:,:,roi_nb);
@@ -532,10 +545,16 @@ for fish_nb=1:2%3:length(Fish_list)
             [I_row I_col]=ind2sub(size(test),I);            
             Centroids(counter,5)=counter;
             temp=[I_col I_row];
-            Centroids(counter,1:2)=temp+Transfo_tmp([2 1]);
+            Centroids(counter,1:2)=temp+Transfo_tmp([2 1]);            
             Centroids(counter,3)=(slice/20)+1;
             progressbar([],[],roi_nb/size(ROI,3));
             counter=counter+1;
+        end
+        if findstr(filename,'2planes')
+            test=Centroids(:,1:2);
+            test(:,1)=Centroids(:,2);
+            test(:,2)=1120-Centroids(:,1);
+            Centroids(:,1:2)=test;
         end
         progressbar([],fish_nb/length(MatFiles_fish));
     end
@@ -547,7 +566,6 @@ for fish_nb=1:2%3:length(Fish_list)
     csvwrite(image_name,Centroids);
     progressbar(fish_nb/length(Fish_list));
 end
-
 
 
 idx_name=strcat(num2str(Fish_list(fish_nb)),'_',num2str(slice));
@@ -629,11 +647,11 @@ coefficients(idxempty)={0};
 clearvars idxempty idx coef_idx coef temp
 coefficients=cell2mat(coefficients);
 
-CSV_Files=dir('_2Warped*_Resized.csv');
+CSV_Files=dir('_2Warped*.csv');
 ROIs=struct();
 for i=1:length(CSV_Files);
     temp=csvread(CSV_Files(i).name,1);   
-    Fishname=regexp(CSV_Files(i).name,'ROIsFish_(\d+)_Resized.csv','tokens');Fishname=Fishname{1}{1};    
+    Fishname=regexp(CSV_Files(i).name,'_2Warped(\d+).csv','tokens');Fishname=Fishname{1}{1};    
     ROIs(i).name=Fishname;    
     ROIs(i).coord=temp(:,1:3);
     ROIs(i).idx=temp(:,5);    
@@ -649,26 +667,26 @@ for i=1:length(GoodBetas_select)
     idx_temp=GoodClusters_goodmembers(i).idx;
     temp=find(idx_temp<length(ROI_pool));
     CSV_temp=ROI_pool(idx_temp(temp),:);
-    CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+    CSV_temp(:,3)=CSV_temp(:,3)*4;
     CSV_temp(:,4)=1;
     filename=strcat('__Coords_clust_Basic',num2str(i),'.csv');
     csvwrite(filename,CSV_temp);
 end
 
 CSV_temp=ROIs(1).coord;
-CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+CSV_temp(:,3)=CSV_temp(:,3)*4;
 CSV_temp(:,4)=1;
 filename=strcat('__WB_F12','.csv');
 csvwrite(filename,CSV_temp);
 
 CSV_temp=ROIs(2).coord;
-CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+CSV_temp(:,3)=CSV_temp(:,3)*4;
 CSV_temp(:,4)=1;
 filename=strcat('__WB_F13','.csv');
 csvwrite(filename,CSV_temp);
 
 CSV_temp=ROIs(3).coord;
-CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+CSV_temp(:,3)=CSV_temp(:,3)*4;
 CSV_temp(:,4)=1;
 filename=strcat('__WB_F14','.csv');
 csvwrite(filename,CSV_temp);

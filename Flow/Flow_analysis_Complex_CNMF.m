@@ -170,12 +170,13 @@ for i=GoodBetas_select
 end
 
 ModelResultsSeg_ZS=[];
-parfor i=1:length(ZS)
+parfor i=1:length(ZS2)
     %mdl=stepwiselm(Regressor',DataSet(i,:),'linear','Criterion','adjrsquared','Intercept',false,'Upper','interactions','Verbose',0);
-    mdl=stepwiselm(NewFlow',ZS(i,:),'linear','Criterion','adjrsquared','Upper','linear','Verbose',0);
+    %mdl=stepwiselm(NewFlow',ZS(i,:),'linear','Criterion','adjrsquared','Upper','linear','Verbose',0);
+    mdl=fitlm(NewFlow',ZS2(i,:));%,'interactions');
     ModelResultsSeg_ZS(i).coef=mdl.Coefficients;
-    ModelResultsSeg_ZS(i).MSE=mdl.MSE;
-    ModelResultsSeg_ZS(i).Fitted=mdl.Fitted;
+    %ModelResultsSeg_ZS(i).MSE=mdl.MSE;
+    %ModelResultsSeg_ZS(i).Fitted=mdl.Fitted;
     ModelResultsSeg_ZS(i).rsquared=mdl.Rsquared.Adjusted;
 end
 idx_rsq_ZS=find([ModelResultsSeg_ZS.rsquared]>0.1);
