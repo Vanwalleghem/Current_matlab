@@ -598,3 +598,10 @@ for i=1:length(GoodBetas_merge)
     csvwrite(filename,CSV_temp);
 end
 
+%---------------------------------------------
+%Remove ROIs from outside the brain
+Zbrain_AllMask=vertcat(Zbrain_Masks{[1:1:77 79:1:294],3});
+Zbrain_AllMask=unique(Zbrain_AllMask,'rows');
+%Removing the eyes
+idx_brain=ismember(ROI_rot_correct,Zbrain_AllMask,'rows');
+

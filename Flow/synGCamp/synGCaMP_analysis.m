@@ -19,15 +19,15 @@ for idx=2:length(PCA_ICA_results)
         AllSegTraces=vertcat(AllSegTraces,PCA_ICA_results(idx).cell_sig);
     end
 end
-DF=DeltaF2(AllSegTraces,11,21);
+DF=DeltaF2(AllSegTraces,5,15);
 ZS=zscore(AllSegTraces,1,2);
 
 
 GMModels = {};maxCompNb=80;
 options = statset('MaxIter',500);
 progressbar
-for k = 76:maxCompNb
-    GMModels{k} = fitgmdist(DF,k,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
+for k = 1:maxCompNb
+    GMModels{k} = fitgmdist(ZS,k,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
     BIC(k)= GMModels{k}.BIC;
     GMModels{k}.BIC
     progressbar(k/maxCompNb);
@@ -36,6 +36,7 @@ end
 numComponents
 BIC_smooth=smooth(BIC');
 figure;plot(BIC_smooth);
+
 
 
 options = statset('UseParallel',1); [idxKmeans Cmap]=kmeans(DF,50,'Options',options,'Distance','correlation','Replicates',5,'MaxIter',1000,'Display','final');
@@ -59,17 +60,17 @@ parfor i=1:size(ZS,1)
 end
 
 
-Threshold=0.2;
+Threshold=0.1;
 idx_rsq=find([model_DF.rsquared]>Threshold);
 figure;imagesc(DF(idx_rsq,:),[0 0.1]);colormap hot
-options = statset('UseParallel',1); [idxKmeans2 Cmap2]=kmeans(DF(idx_rsq,:),5,'Options',options,'Distance','correlation','Replicates',5,'MaxIter',1000,'Display','final');
+options = statset('UseParallel',1); [idxKmeans2 Cmap2]=kmeans(DF(idx_rsq,:),10,'Options',options,'Distance','correlation','Replicates',5,'MaxIter',1000,'Display','final');
 [Model_DF2,GoodBetas2]=Test_Regress(Cmap2,flow,idxKmeans2,Threshold);
 
-Threshold=0.2;
+Threshold=0.1;
 idx_rsq_ZS=find([model_ZS.rsquared]>Threshold);
 figure;imagesc(ZS(idx_rsq_ZS,:),[0 4]);colormap hot
-options = statset('UseParallel',1); [idxKmeans_ZS Cmap_ZS]=kmeans(ZS(idx_rsq_ZS,:),5,'Options',options,'Distance','correlation','Replicates',5,'MaxIter',1000,'Display','final');
-[Model_ZS,GoodBetas_ZS]=Test_Regress(Cmap_ZS,flow,idxKmeans_ZS,Threshold);
+options = statset('UseParallel',1); [idxKmeans_ZS Cmap_ZS]=kmeans(ZS(idx_rsq_ZS,:),20,'Options',options,'Distance','correlation','Replicates',5,'MaxIter',1000,'Display','final');
+[Model_ZS,GoodBetas_ZS]=Test_Regress(Cmap_ZS,flow,idxKmeans_ZS,0.2);
 
 DF_rsq=DF(idx_rsq,:);
 Merged_DF=DF(idx_rsq,:);%   ALL_DF_02=Dataset (neurons x time)
@@ -157,11 +158,13 @@ for i=1:max(c)
     ClustMean(i,:)=mean(Select_DF_rsq(find(c==i),:),1);
 end
 
-GMModels = {};
-options = statset('MaxIter',500);
-for k = 48:50
-    GMModels{k} = fitgmdist(Select_DF_rsq,k,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
+GMModels = {};BIC=[];
+options = statset('MaxIter',500);maxCompNb=80;progressbar;
+for k = 15:maxCompNb
+    GMModels{k} = fitgmdist(ZS_rsq,k,'Options',options,'CovarianceType','diagonal','Options',options, 'Regularize', 1e-5);
     BIC(k)= GMModels{k}.BIC;
+    progressbar(k/maxCompNb);
+    BIC(k)
 end
 [minBIC,numComponents] = min(BIC);
 numComponents
@@ -206,27 +209,27 @@ set(Fighandle, 'Position', [100, 100, 1300, 900]);
 GoodClusterData=[];
 %name=['ELO';'CLO'];
 x = linspace(0.2,size(ZS,2)/5,size(ZS,2));
-for i=GoodBetas2  
+for i=GoodBetas_ZS  
     idx=find(idxKmeans_ZS==i);
     GoodClusterData(counter).mean=mean(ZS_rsq(idx,:),1);
     GoodClusterData(counter).ZS=ZS_rsq(idx,:);
     GoodClusterData(counter).planes=idx_Plane(idx_rsq_ZS(idx));
     GoodClusterData(counter).fish=idx_fish(idx_rsq_ZS(idx));
-    subplot(length(GoodBetas2),4,counter2);plot(x,GoodClusterData(counter).mean);title(num2str(length(idx)));ylim([-2 4]);xlim([0 130]);rectangle('FaceColor','r','Position',[10 -2 10 0.5]);rectangle('FaceColor','r','Position',[50 -2 10 0.5]);rectangle('FaceColor','r','Position',[90 -2 10 0.5]);rectangle('FaceColor','b','Position',[30 -2 10 0.5]);rectangle('FaceColor','b','Position',[70 -2 10 0.5]);rectangle('FaceColor','b','Position',[110 -2 10 0.5]);    
-    subplot(length(GoodBetas2),4,counter2+1);imagesc(GoodClusterData(counter).ZS, [0 4]); colormap hot;title(num2str(length(idx)))    
-    subplot(length(GoodBetas2),4,counter2+2);histogram(GoodClusterData(counter).planes);
-    subplot(length(GoodBetas2),4,counter2+3);histogram(GoodClusterData(counter).fish);
+    subplot(length(GoodBetas_ZS),2,counter2);plot(x,GoodClusterData(counter).mean);title(num2str(length(idx)));ylim([-2 4]);xlim([0 130]);rectangle('FaceColor','r','Position',[10 -2 10 0.5]);rectangle('FaceColor','r','Position',[50 -2 10 0.5]);rectangle('FaceColor','r','Position',[90 -2 10 0.5]);rectangle('FaceColor','b','Position',[30 -2 10 0.5]);rectangle('FaceColor','b','Position',[70 -2 10 0.5]);rectangle('FaceColor','b','Position',[110 -2 10 0.5]);    
+    subplot(length(GoodBetas_ZS),2,counter2+1);imagesc(GoodClusterData(counter).ZS, [0 4]); colormap hot;title(num2str(length(idx)))    
+    %subplot(length(GoodBetas2),4,counter2+2);histogram(GoodClusterData(counter).planes);
+    %subplot(length(GoodBetas2),4,counter2+3);histogram(GoodClusterData(counter).fish);
     %subplot(length(GoodBetas_select),4,counter2+3);bar([sum(GoodClusterData(counter).State==3) sum(GoodClusterData(counter).State==4)]);set(gca,'xticklabel',name);
-    counter2=counter2+4;
+    counter2=counter2+2;
     counter=counter+1;
 end
 
 
 
 for i=1:numel(GoodClusterData)
-    corr_temp=zeros(size(GoodClusterData(i).DF,1),1);
-    parfor j=1:size(GoodClusterData(i).DF,1)
-        temp=corrcoef(GoodClusterData(i).mean, GoodClusterData(i).DF(j,:));
+    corr_temp=zeros(size(GoodClusterData(i).ZS,1),1);
+    parfor j=1:size(GoodClusterData(i).ZS,1)
+        temp=corrcoef(GoodClusterData(i).mean, GoodClusterData(i).ZS(j,:));
         corr_temp(j)=temp(1,2);
     end
     GoodClusterData(i).CorrCoef=corr_temp;
@@ -235,17 +238,17 @@ end
 GoodClusters_goodmembers=[];Threshold=0.5;
 idxKmeans_ZS_goodmembers=idxKmeans_ZS*0;
 for i=1:length(GoodBetas_ZS)
-%GoodClusters_goodmembers(i).Spikes=GoodClusterData(i).Spikes(find(GoodClusterData(i).CorrCoef>=0.5),:);
-%GoodClusters_goodmembers(i).ZS=zscore(GoodClusterData(i).DF(find(GoodClusterData(i).CorrCoef>=0.5),:),1,2);
-GoodClusters_goodmembers(i).ZS=GoodClusterData(i).ZS(find(GoodClusterData(i).CorrCoef>=Threshold),:);
-temp=find(idxKmeans_ZS==GoodBetas_ZS(i));
-GoodClusters_goodmembers(i).idx=temp(find(GoodClusterData(i).CorrCoef>=Threshold));
-GoodClusters_goodmembers(i).mean=mean(GoodClusters_goodmembers(i).ZS,1);
-GoodClusters_goodmembers(i).STD=std(GoodClusters_goodmembers(i).ZS,1,1);
-idx=find(idxKmeans_ZS==GoodBetas_ZS(i));
-idx=idx(find(GoodClusterData(i).CorrCoef>=Threshold));
-idxKmeans_ZS_goodmembers(idx)=GoodBetas_ZS(i);
-%GoodClusters_goodmembers(i).Fish=idx_Fish(idx);
+    %GoodClusters_goodmembers(i).Spikes=GoodClusterData(i).Spikes(find(GoodClusterData(i).CorrCoef>=0.5),:);
+    %GoodClusters_goodmembers(i).ZS=zscore(GoodClusterData(i).ZS(find(GoodClusterData(i).CorrCoef>=0.5),:),1,2);
+    GoodClusters_goodmembers(i).ZS=GoodClusterData(i).ZS(find(GoodClusterData(i).CorrCoef>=Threshold),:);
+    temp=find(idxKmeans_ZS==GoodBetas_ZS(i));
+    GoodClusters_goodmembers(i).idx=temp(find(GoodClusterData(i).CorrCoef>=Threshold));
+    GoodClusters_goodmembers(i).mean=mean(GoodClusters_goodmembers(i).ZS,1);
+    GoodClusters_goodmembers(i).STD=std(GoodClusters_goodmembers(i).ZS,1,1);
+    idx=find(idxKmeans_ZS==GoodBetas_ZS(i));
+    idx=idx(find(GoodClusterData(i).CorrCoef>=Threshold));
+    idxKmeans_ZS_goodmembers(idx)=GoodBetas_ZS(i);
+    %GoodClusters_goodmembers(i).Fish=idx_Fish(idx);
 end
 
 colors = [0         0    1.0000
@@ -259,14 +262,14 @@ colors = [0         0    1.0000
 colors = colors*256;
 
 GoodBetas=GoodBetas_ZS;
-GoodBetas_select=GoodBetas2;
+GoodBetas_select=GoodBetas;
 Fighandle=figure;
-set(Fighandle, 'Position', [100, 100, 1400, 900]);x = linspace(0.2,size(ZS,2)/5,size(Z,2));
+set(Fighandle, 'Position', [100, 100, 1400, 900]);x = linspace(0.2,size(ZS,2)/5,size(ZS,2));
 counter=1;counter2=1;xplot=floor(sqrt(length(GoodBetas_select)));yplot=ceil(length(GoodBetas_select)/xplot);
 for i=1:length(GoodBetas_select)  
-    subplot(length(GoodBetas_select),3,counter);plot(x,mean(zscore(GoodClusters_goodmembers(i).DF,1,2),1),'color',colors(counter2,:)/256,'LineWidth',2);axis([0 131 -1 4]);rectangle('FaceColor','r','Position',[11 -1 10 0.25]);rectangle('FaceColor','r','Position',[51 -1 10 0.25]);rectangle('FaceColor','r','Position',[91 -1 10 0.25]);rectangle('FaceColor','b','Position',[31 -1 10 0.25]);rectangle('FaceColor','b','Position',[71 -1 10 0.25]);rectangle('FaceColor','b','Position',[111 -1 10 0.25]);
-    subplot(length(GoodBetas_select),3,counter+1);imagesc(zscore(GoodClusters_goodmembers(i).DF,1,2),[0 4]);colormap hot
-    subplot(length(GoodBetas_select),3,counter+2);histogram(idx_Plane(GoodClusters_goodmembers(i).idx));
+    subplot(length(GoodBetas_select),3,counter);plot(x,mean(zscore(GoodClusters_goodmembers(i).ZS,1,2),1),'color',colors(counter2,:)/256,'LineWidth',2);axis([0 131 -1 4]);rectangle('FaceColor','r','Position',[11 -1 10 0.25]);rectangle('FaceColor','r','Position',[51 -1 10 0.25]);rectangle('FaceColor','r','Position',[91 -1 10 0.25]);rectangle('FaceColor','b','Position',[31 -1 10 0.25]);rectangle('FaceColor','b','Position',[71 -1 10 0.25]);rectangle('FaceColor','b','Position',[111 -1 10 0.25]);
+    subplot(length(GoodBetas_select),3,counter+1);imagesc(zscore(GoodClusters_goodmembers(i).ZS,1,2),[0 4]);colormap hot
+    subplot(length(GoodBetas_select),3,counter+2);histogram(idx_fish(idx_rsq_ZS(GoodClusters_goodmembers(i).idx)));
     counter=counter+3;
     counter2=counter2+1;
 end
@@ -291,7 +294,7 @@ for File=2:length(filelist)
 end
 
 colors = distinguishable_colors(length(GoodBetas_ZS),[1 1 1; 0 0 0]);
-colors = colors(GoodBetas,:);
+%colors = colors(GoodBetas,:);
 Number=[1 Number];
 idxKmeans_final(idx_rsq_ZS)=idxKmeans_ZS_goodmembers;
 for File=1:length(filelist)
@@ -302,7 +305,7 @@ for File=1:length(filelist)
     image=double(imread(imagename));image(image==max(max(image)))=0;image=image/max(prctile(image,95));image=image*64;
     image=uint8(image);    
     image3=repmat(image,1,1,3);
-    for i=GoodBetas_ZS
+    for i=GoodBetas
         idx_ROI=find(idx_temp==i);
         image2=squeeze(sum(ROIs(idx_ROI,:,:),1));
         image2=(image2/max(max(image2)))*150;image2=uint8(image2);
@@ -310,7 +313,7 @@ for File=1:length(filelist)
             image3(:,:,j)=image3(:,:,j)+image2*colors(i,j);
         end
     end
-    name=strcat('Kmeans_good',imagename(4:end));
+    name=strcat('_Kmeans_good',imagename(4:end));
     imwrite(image3,name,'tif');
 end
 

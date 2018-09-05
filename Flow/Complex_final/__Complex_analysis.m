@@ -1,7 +1,7 @@
 load('Complex_Noise.mat');
 options = statset('UseParallel',1); [idxKmeans_ZS Cmap_ZS]=kmeans(ZS2,50,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
 
-NewFlow=zeros(8,size(ZS2,2));
+NewFlow=zeros(6,size(ZS2,2));
 GCaMP6=[-0.104392135015146,1.69644104899772,5.13796058542217,8.27886020152244,10.3756715204800,11.8173714529814,12.2425184714093,10.8571417354877,8.80831829681196,6.91339112244670,5.46959264663869,4.30868766622567,3.42533619066766,2.75378443486879,2.18017250852183,1.72816235135824,1.32732537295463,1.00684435500268,0.730210038304555,0.530242444093118,0.362253250339685,0.227668255288566,0.0869242416152502,0.000718266708050853,-0.0828334873368325]';
 GCaMP6s=interp(GCaMP6,2);
 back=    [56 256 557 1006 1106 1466 1827 2086]-10; %Infuse
@@ -9,16 +9,14 @@ back_off=[106 356 706 1056 1206 1516 1926 2176]-10;
 fwd=    [156 407 757 856 1256 1316 1526 1626 1986 2236]-10; %Withdraw
 fwd_off=[206 506 806 956 1306 1366 1576 1776 2036 2286]-10;
 for i=1:length(back)
-NewFlow(1,back(i):back(i)+size(GCaMP6,1)-1)=GCaMP6';
-NewFlow(2,back(i):back(i)+size(GCaMP6s,1)-1)=GCaMP6s';
-NewFlow(3,back_off(i):back_off(i)+size(GCaMP6,1)-1)=GCaMP6';
-NewFlow(7,back(i):back_off(i))=1;
+NewFlow(1,back(i):back(i)+size(GCaMP6s,1)-1)=GCaMP6s';
+NewFlow(2,back_off(i):back_off(i)+size(GCaMP6s,1)-1)=GCaMP6s';
+NewFlow(5,back(i):back_off(i))=1;
 end
 for i=1:length(fwd)
-NewFlow(4,fwd(i):fwd(i)+size(GCaMP6,1)-1)=GCaMP6';
-NewFlow(5,fwd(i):fwd(i)+size(GCaMP6s,1)-1)=GCaMP6s';
-NewFlow(6,fwd_off(i):fwd_off(i)+size(GCaMP6,1)-1)=GCaMP6';
-NewFlow(8,fwd(i):fwd_off(i))=1;
+NewFlow(3,fwd(i):fwd(i)+size(GCaMP6s,1)-1)=GCaMP6s';
+NewFlow(4,fwd_off(i):fwd_off(i)+size(GCaMP6s,1)-1)=GCaMP6s';
+NewFlow(6,fwd(i):fwd_off(i))=1;
 end
 clearvars GCaMP6 back back_off fwd fwd_off;
 
@@ -120,12 +118,12 @@ subplot(3,1,1);histogram([model_NewFlow.rsquared]);
 subplot(3,1,2);histogram([model_predict.rsquared]);
 subplot(3,1,3);histogram([model_basic.rsquared]);
 
-idx_rsq_NewFlow=find([model_NewFlow.rsquared]>0.05);
-idx_rsq_predict=find([model_predict.rsquared]>0.05);
-idx_rsq_basic=find([model_basic.rsquared]>0.05);
+idx_rsq_NewFlow=find([model_NewFlow.rsquared]>0.1);
+idx_rsq_predict=find([model_predict.rsquared]>0.1);
+idx_rsq_basic=find([model_basic.rsquared]>0.1);
 
 [idxKmeans_NewFlow Cmap_NewFlow]=kmeans(ZS2(idx_rsq_NewFlow,:),20,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
-[idxKmeans_predict Cmap_predict]=kmeans(ZS2(idx_rsq_predict,:),20,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
+[idxKmeans_predict Cmap_predict]=kmeans(ZS2(idx_rsq_predict,:),40,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
 [idxKmeans_basic Cmap_basic]=kmeans(ZS2(idx_rsq_basic,:),20,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
 
 figure;
@@ -157,7 +155,7 @@ parfor i=1:size(ZS_rsq,1)
 end
 
 [MaxCorr_BasiClust MaxCorr_BasiClust_ind]=max(abs(Corr_BasicCLust),[],1);
-idx_BasicClust_corr=find(MaxCorr_BasiClust>0.5);
+idx_BasicClust_corr=find(MaxCorr_BasiClust>0.7);
 BasicClustData=[];
 for basic=1:max(MaxCorr_BasiClust_ind)
     idx_BasicClust_temp=find(MaxCorr_BasiClust_ind(idx_BasicClust_corr)==basic);
@@ -172,4 +170,13 @@ for i=1:max(MaxCorr_BasiClust_ind)
     subplot(xplot,yplot,counter);plot(x,BasicClustData(i).mean);xlim([0 500]); %hold on;plot(x,(double(Flow_profile2)/10)-1)
     counter=counter+1;
 end
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1300, 900]);
+counter=1;xplot=floor(sqrt(max(MaxCorr_BasiClust_ind)));yplot=ceil(max(MaxCorr_BasiClust_ind)/xplot);
+for i=1:max(MaxCorr_BasiClust_ind)    
+    subplot(xplot,yplot,counter);imagesc(BasicClustData(i).ZS);xlim([0 500]); %hold on;plot(x,(double(Flow_profile2)/10)-1)
+    counter=counter+1;
+end
+
 

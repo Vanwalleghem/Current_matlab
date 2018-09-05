@@ -86,7 +86,7 @@ for i=1:length(GoodBetas_ZS2)
 end
 
 %All brain regions
-load('D:\Pictures\processed\Itia\_BrainRegAndROIs.mat', 'Zbrain_Masks')
+load('D:\Pictures\processed\Zbrain_Masks.mat'. 'Zbrain_Masks')
 Zbrain_AllMask=vertcat(Zbrain_Masks{[1:1:77 79:1:294],3});
 Zbrain_AllMask=unique(Zbrain_AllMask,'rows');
 %Removing the eyes

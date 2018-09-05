@@ -127,20 +127,20 @@ for i=1:numel(GoodClustersData)
 end
 
 
-GoodClusters_goodmembers=[];Threshold=0.5;
-idxKmeans_ZS_goodmembers=zeros(1,size(GoodCalcium,1));
+GoodClusters_goodmembers=[];Threshold=0.4;
+idxKmeans_ZS_goodmembers=zeros(1,size(ZS,1));
 for i=1:length(GoodBetas_select)
-%GoodClusters_goodmembers(i).Spikes=GoodClustersData(i).Spikes(find(GoodClustersData(i).CorrCoef>=0.5),:);
-%GoodClusters_goodmembers(i).ZS=zscore(GoodClustersData(i).DF(find(GoodClustersData(i).CorrCoef>=0.5),:),1,2);
-GoodClusters_goodmembers(i).ZS=GoodClustersData(i).ZS(find(GoodClustersData(i).CorrCoef>=Threshold),:);
-temp=find(idxKmeans==GoodBetas_select(i));
-GoodClusters_goodmembers(i).idx=temp(find(GoodClustersData(i).CorrCoef>=0.5));
-GoodClusters_goodmembers(i).mean=mean(GoodClusters_goodmembers(i).ZS,1);
-GoodClusters_goodmembers(i).STD=std(GoodClusters_goodmembers(i).ZS,1,1);
-idx=find(idxKmeans==GoodBetas_select(i));
-idx=idx(find(GoodClustersData(i).CorrCoef>=Threshold));
-idxKmeans_ZS_goodmembers(idx)=GoodBetas_select(i);
-%GoodClusters_goodmembers(i).Fish=idx_Fish(idx);
+    %GoodClusters_goodmembers(i).Spikes=GoodClustersData(i).Spikes(find(GoodClustersData(i).CorrCoef>=0.5),:);
+    %GoodClusters_goodmembers(i).ZS=zscore(GoodClustersData(i).DF(find(GoodClustersData(i).CorrCoef>=0.5),:),1,2);
+    GoodClusters_goodmembers(i).ZS=GoodClustersData(i).ZS(find(GoodClustersData(i).CorrCoef>=Threshold),:);
+    temp=find(idxKmeans==GoodBetas_select(i));
+    GoodClusters_goodmembers(i).idx=temp(find(GoodClustersData(i).CorrCoef>=Threshold));
+    GoodClusters_goodmembers(i).mean=mean(GoodClusters_goodmembers(i).ZS,1);
+    GoodClusters_goodmembers(i).STD=std(GoodClusters_goodmembers(i).ZS,1,1);
+    idx=find(idxKmeans==GoodBetas_select(i));
+    idx=idx(find(GoodClustersData(i).CorrCoef>=Threshold));
+    idxKmeans_ZS_goodmembers(idx)=GoodBetas_select(i);
+    %GoodClusters_goodmembers(i).Fish=idx_Fish(idx);
 end
 
 
@@ -249,9 +249,15 @@ for idx=Start:length(MatFiles)
     imwrite(image3,name,'tif');
     end
     %image3=uint8(image3);
-
 end
 clearvars idx i temp tempFileNb fileNb AVG_files filename image counter Numbers image2 image3 k ROI ROIs ROIsNb Start tempROIsNb name imagename tempidx Raster
+
+image_ROI=zeros(size(image));
+for i=1:size(ROI,3)
+    image_ROI(squeeze(ROI(:,:,i))>0)=i;
+end
+
+
 
 for idx=Start:length(MatFiles)
     filename=MatFiles(idx).name;
@@ -491,7 +497,7 @@ load('D:\Pictures\processed\Flow\Basic\transformation_crop_to_full.mat')
 Twoplanes_transfo=load('D:\Pictures\processed\Flow\Basic\transformation_crop_to_full_2planes.mat')
 Errored_ROI={};
 progressbar(0,0,0);
-for fish_nb=1:(Fish_list)    
+for fish_nb=1:length(Fish_list)    
     IndexC=find(idx_Fish==Fish_list(fish_nb));
     IndexC=ismember(ROIs_idx,IndexC);
     MatFiles_fish = find(IndexC>0);
@@ -566,6 +572,7 @@ for fish_nb=1:(Fish_list)
     csvwrite(image_name,Centroids);
     progressbar(fish_nb/length(Fish_list));
 end
+clearvars i j k ROI Centroids M I I_row I_col test temp image_name filename fish fish_nb
 
 
 idx_name=strcat(num2str(Fish_list(fish_nb)),'_',num2str(slice));
@@ -578,11 +585,12 @@ strfind(FileName,idx_name)
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1200, 400]);
 set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
-counter=1;counter2=1;xplot=1;yplot=3;
+counter=1;counter2=1;xplot=1;yplot=2;
 back=[55 255 455];
 fwd=[155 355 555];
 StimLength=100;
 x = linspace(0.2,StimLength/5,StimLength);
+ha = tight_subplot(xplot,yplot,[.01 .01],[.01 .01],[.01 .01]);
 for i=GoodBetas_select    
     tempPlot=GoodClusters_goodmembers(counter).mean;
     BackPlot=zeros(3,StimLength);
@@ -592,7 +600,8 @@ for i=GoodBetas_select
         FwdPlot(j,:)=tempPlot(fwd(j):fwd(j)+99);
     end
     temp=mean(BackPlot,1);std_temp=std(BackPlot,1,1);
-    subplot(xplot,yplot,1);
+    %subplot(xplot,yplot,1);
+    axes(ha(1));
     H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
     H.mainLine.Color=colors(counter,:)/256;
     H.patch.FaceColor=colors(counter,:)/256;
@@ -601,7 +610,8 @@ for i=GoodBetas_select
     H.mainLine.LineWidth=3;
     set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
     temp=mean(FwdPlot,1);std_temp=std(FwdPlot,1,1);
-    subplot(xplot,yplot,2);
+    %subplot(xplot,yplot,2);
+    axes(ha(2));
     H=shadedErrorBar(x, temp, std_temp);axis([0 20 -1 3]);
     H.mainLine.Color=colors(counter,:)/256;
     H.patch.FaceColor=colors(counter,:)/256;
@@ -609,19 +619,75 @@ for i=GoodBetas_select
     H.edge(2).Color=colors(counter,:)/256;    
     H.mainLine.LineWidth=3;
     set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
-    subplot(xplot,yplot,3);
-    RespBWD=max(BackPlot,[],2);RespBWD=RespBWD+abs(min(RespBWD));
-    RespFWD=max(FwdPlot,[],2);RespFWD=RespFWD+abs(min(RespFWD));
-    %bar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),'FaceColor',colors(counter,:)/256);hold on; ylim([-1 1]);
-    scatter(zeros(1,13)+1,DSI(:,counter,1),[],colors(counter,:)/256);hold on;ylim([-1.1 1.1]);set(gca,'xtick',[]);set(gca,'xcolor','none')
-    errorbar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),nanstd(DSI(:,counter,1)),'.','LineWidth',2,'MarkerEdgeColor',colors(counter,:)/256,'MarkerFaceColor',colors(counter,:)/256,'Color',colors(counter,:)/256);view([90 -90]);hold off    
-    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
-    print(Fighandle,strcat('Cluster_basic_',num2str(counter),'.svg'),'-dsvg','-r0');    
+%     subplot(xplot,yplot,3);
+%     RespBWD=max(BackPlot,[],2);RespBWD=RespBWD+abs(min(RespBWD));
+%     RespFWD=max(FwdPlot,[],2);RespFWD=RespFWD+abs(min(RespFWD));
+%     %bar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),'FaceColor',colors(counter,:)/256);hold on; ylim([-1 1]);
+%     scatter(zeros(1,13)+1,DSI(:,counter,1),[],colors(counter,:)/256);hold on;ylim([-1.1 1.1]);set(gca,'xtick',[]);set(gca,'xcolor','none')
+%     errorbar(mean((RespFWD-RespBWD)./(RespFWD+RespBWD)),nanstd(DSI(:,counter,1)),'.','LineWidth',2,'MarkerEdgeColor',colors(counter,:)/256,'MarkerFaceColor',colors(counter,:)/256,'Color',colors(counter,:)/256);view([90 -90]);hold off    
+%     set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\Cluster_basic_',num2str(counter),'.svg'),'-dsvg','-r0');    
     counter=counter+1;
 end
 
-%look for inhibs
-ZS=zscore(GoodCalcium+GoodNoise,1,2);
+%Make figure of full length + STD + rasterhisto
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 800, 3000]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+counter=1;counter2=1;xplot=8;yplot=2;
+StimLength=655;
+x = linspace(0.2,StimLength/5,StimLength);
+ha = tight_subplot(xplot,yplot,[.01 .01],[.01 .01],[.01 .01]);
+for i=GoodBetas_select    
+    temp=GoodClusters_goodmembers(counter).mean;
+    std_temp=GoodClusters_goodmembers(counter).STD;        
+    %subplot(xplot,yplot,(2*counter)-1);
+    axes(ha((2*counter)-1));
+    H=shadedErrorBar(x, temp, std_temp);axis([0 130 -1 4]);
+    H.mainLine.Color=colors(counter,:)/256;
+    H.patch.FaceColor=colors(counter,:)/256;
+    H.edge(1).Color=colors(counter,:)/256;
+    H.edge(2).Color=colors(counter,:)/256;
+    H.mainLine.LineWidth=3;    
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);  
+    %subplot(xplot,yplot,(2*counter));
+    axes(ha((2*counter)));
+    imagesc(GoodClusters_goodmembers(counter).ZS(randperm(size(GoodClusters_goodmembers(counter).ZS,1)),:),[-1 3]);colormap hot
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);    
+    counter=counter+1;
+end
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullLength_basic_clusters.svg'),'-dsvg','-r0');    
+
+%Make individual figures of full length + STD + rasterhisto
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1600, 400]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+counter=1;counter2=1;xplot=1;yplot=2;
+StimLength=655;
+x = linspace(0.2,StimLength/5,StimLength);
+for i=GoodBetas_select    
+    ha = tight_subplot(xplot,yplot,[.01 .01],[.01 .01],[.01 .01]);
+    temp=GoodClusters_goodmembers(counter).mean;
+    std_temp=GoodClusters_goodmembers(counter).STD;        
+    %subplot(xplot,yplot,(2*counter)-1);
+    axes(ha(1));
+    H=shadedErrorBar(x, temp, std_temp);axis([0 130 -2 5]);
+    H.mainLine.Color=colors(counter,:)/256;
+    H.patch.FaceColor=colors(counter,:)/256;
+    H.edge(1).Color=colors(counter,:)/256;
+    H.edge(2).Color=colors(counter,:)/256;
+    H.mainLine.LineWidth=3;    
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);  
+    %subplot(xplot,yplot,(2*counter));
+    axes(ha(2));
+    imagesc(GoodClusters_goodmembers(counter).ZS(randperm(size(GoodClusters_goodmembers(counter).ZS,1)),:),[-1 3]);colormap hot
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);    
+    
+    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullLength_basic_clusters',num2str(counter),'.svg'),'-dsvg','-r0');    
+    counter=counter+1;
+end
+
+
 
 parfor i=1:size(ZS,1)
     mdl=fitlm(flow',ZS(i,:));
@@ -647,14 +713,15 @@ coefficients(idxempty)={0};
 clearvars idxempty idx coef_idx coef temp
 coefficients=cell2mat(coefficients);
 
-CSV_Files=dir('_2Warped*.csv');
+CSV_Files=dir('_2WarpedLong*.csv');
 ROIs=struct();
 for i=1:length(CSV_Files);
-    temp=csvread(CSV_Files(i).name,1);   
-    Fishname=regexp(CSV_Files(i).name,'_2Warped(\d+).csv','tokens');Fishname=Fishname{1}{1};    
+    temp=csvread(CSV_Files(i).name,0);   
+    Fishname=regexp(CSV_Files(i).name,'_2WarpedLong(\d+).csv','tokens');Fishname=Fishname{1}{1};    
     ROIs(i).name=Fishname;    
     ROIs(i).coord=temp(:,1:3);
-    ROIs(i).idx=temp(:,5);    
+    ROIs(i).idx=temp(:,5);
+    size(temp,1)==sum(idx_Fish==str2num(Fishname))
 end
 clearvars i temp CSV_Files Fishname
 
@@ -663,41 +730,75 @@ for i=2:length(ROIs);
     ROI_pool=[ROI_pool; ROIs(i).coord];
 end
 
-for i=1:length(GoodBetas_select)
-    idx_temp=GoodClusters_goodmembers(i).idx;
-    temp=find(idx_temp<length(ROI_pool));
-    CSV_temp=ROI_pool(idx_temp(temp),:);
-    CSV_temp(:,3)=CSV_temp(:,3)*4;
+Sort_ROIs=[];temp_nb=0;
+MatFiles_names={MatFiles.name};
+for fish_nb=1:length(Fish_list)
+    if fish_nb <3
+        fish_name=strcat('f',num2str(Fish_list(fish_nb)),'-');
+        IndexC=strfind(MatFiles_names,fish_name);
+    else
+        fish_name=strcat(num2str(Fish_list(fish_nb)),'_');
+        IndexC=regexp(MatFiles_names,strcat('^',fish_name));
+    end            
+    MatFiles_fish = find(not(cellfun('isempty', IndexC)));
+    for file_nb=1:length(MatFiles_fish)
+        if MatFiles_fish(file_nb)==1
+            numbersForROIs=[1 MatFiles(1).GoodNumber];
+        else
+            numbersForROIs=[MatFiles(MatFiles_fish(file_nb)-1).GoodNumber+1 MatFiles(MatFiles_fish(file_nb)).GoodNumber];
+        end
+        if ismember(numbersForROIs,Sort_ROIs)
+            fish_name
+            break
+        end
+        Sort_ROIs=[Sort_ROIs numbersForROIs(1):1:numbersForROIs(2)];        
+    end    
+    if ~length(Sort_ROIs)-temp_nb==sum(idx_Fish==(Fish_list(fish_nb)))
+        fish_name
+        break
+    end
+    temp_nb=length(Sort_ROIs);
+end
+clearvars slice fish_nb roi_nb ROI Centroids IndexC file_nb
+
+ROI_fish(Sort_ROIs,:)=ROI_pool;
+clearvars ROI_pool
+% 
+% for i=1:length(GoodBetas_select)
+%     idx_temp=GoodClusters_goodmembers(i).idx;    
+%     CSV_temp=ROI_fish(idx_temp,:);
+%     CSV_temp(:,3)=CSV_temp(:,3);
+%     CSV_temp(:,4)=1;
+%     filename=strcat('__Coords_clust_Basic',num2str(i),'.csv');
+%     csvwrite(filename,CSV_temp);
+% end
+% 
+for i=1:length(ROIs)
+    CSV_temp=ROIs(i).coord;    
     CSV_temp(:,4)=1;
-    filename=strcat('__Coords_clust_Basic',num2str(i),'.csv');
+    filename=strcat('__WB_F',ROIs(i).name,'.csv');    
     csvwrite(filename,CSV_temp);
 end
 
-CSV_temp=ROIs(1).coord;
-CSV_temp(:,3)=CSV_temp(:,3)*4;
-CSV_temp(:,4)=1;
-filename=strcat('__WB_F12','.csv');
-csvwrite(filename,CSV_temp);
-
-CSV_temp=ROIs(2).coord;
-CSV_temp(:,3)=CSV_temp(:,3)*4;
-CSV_temp(:,4)=1;
-filename=strcat('__WB_F13','.csv');
-csvwrite(filename,CSV_temp);
-
-CSV_temp=ROIs(3).coord;
-CSV_temp(:,3)=CSV_temp(:,3)*4;
-CSV_temp(:,4)=1;
-filename=strcat('__WB_F14','.csv');
-csvwrite(filename,CSV_temp);
+% % 
+% % CSV_temp=ROIs(2).coord;
+% CSV_temp(:,3)=CSV_temp(:,3);
+% CSV_temp(:,4)=1;
+% filename=strcat('__WB_F13','.csv');
+% csvwrite(filename,CSV_temp);
+% 
+% CSV_temp=ROIs(3).coord;
+% CSV_temp(:,3)=CSV_temp(:,3);
+% CSV_temp(:,4)=1;
+% filename=strcat('__WB_F14','.csv');
+% csvwrite(filename,CSV_temp);
 
 idx_inhib=find(min(coefficients,[],2)<-1);
 figure;imagesc(ZS(idx_inhib,:),[-2 2]);colormap hot;options = statset('UseParallel',1);
 [idxKmeans_inhib Cmap_inhib]=kmeans(ZS(idx_inhib,:),4,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
 [~,GoodBetas_inhib]=Test_Regress(Cmap_inhib,flow,idxKmeans_inhib,0.4);
 
-GoodInhib_goodmembers=[];Threshold=0.5;
-idxKmeans_ZS_goodmembers=zeros(1,size(GoodCalcium,1));
+GoodInhib_goodmembers=[];Threshold=0.4;
 for i=1:length(GoodBetas_inhib)    
     ZS_temp=ZS(idx_inhib(find(idxKmeans_inhib==GoodBetas_inhib(i))),:);
     corr_temp=zeros(1,length(ZS_temp));
@@ -709,15 +810,254 @@ for i=1:length(GoodBetas_inhib)
     idx_temp=idx_inhib(find(idxKmeans_inhib==GoodBetas_inhib(i)));
     GoodInhib_goodmembers(i).idx=idx_temp(find(corr_temp>Threshold));
     GoodInhib_goodmembers(i).mean=mean(GoodInhib_goodmembers(i).ZS,1);
-    GoodInhib_goodmembers(i).STD=std(GoodInhib_goodmembers(i).ZS,1,1);   
+    GoodInhib_goodmembers(i).STD=std(GoodInhib_goodmembers(i).ZS,1,1);       
+end
+
+
+%All brain regions
+load('V:\Gilles\Zbrain_Masks.mat', 'Zbrain_Masks')
+Zbrain_AllMask=vertcat(Zbrain_Masks{[1:1:77 79:1:294],3});
+Zbrain_AllMask=unique(Zbrain_AllMask,'rows');
+
+
+%Need to rotate ROI_temp 180
+ROI_temp=round(ROI_fish);
+dims_Zbrain=[1406 621];
+ROI_rotated=ROI_temp;
+ROI_rotated(:,2)=abs(ROI_temp(:,2)-dims_Zbrain(2));
+ROI_rotated(:,1)=abs(ROI_temp(:,1)-dims_Zbrain(1));
+ROI_rotated(:,3)=ROI_temp(:,3)/2;
+clearvars ROI_temp
+
+
+for i=1:length(GoodBetas_select)
+    idx_temp=GoodClusters_goodmembers(i).idx;    
+    CSV_temp=ROI_rotated(idx_temp,:);
+    CSV_temp(:,3)=CSV_temp(:,3);
+    CSV_temp(:,4)=1;
+    filename=strcat('__Coords_clust_Basic',num2str(i),'b.csv');
+    csvwrite(filename,CSV_temp);
 end
 
 for i=1:length(GoodBetas_inhib)
-    idx_temp=GoodInhib_goodmembers(i).idx;
-    temp=find(idx_temp<length(ROI_pool));
-    CSV_temp=ROI_pool(idx_temp(temp),:);
-    CSV_temp(:,3)=24+CSV_temp(:,3)*8;
+    idx_temp=GoodInhib_goodmembers(i).idx;   
+    CSV_temp=ROI_rotated(idx_temp,:);
+    CSV_temp(:,3)=CSV_temp(:,3);
     CSV_temp(:,4)=1;
     filename=strcat('__Coords_clust_BasicInhib',num2str(i),'.csv');
     csvwrite(filename,CSV_temp);
+end
+
+PerBrainRegions=struct();
+RegionList={'Thalamus','Cerebellum','NucMLF','Semicircularis','Telencephalon','Tectum','Longitudinalis','Tegmentum','Habenula','Pretectum','MON','Hindbrain','pLLG'};
+progressbar;
+for i=1:length(RegionList)
+    progressbar(i/length(RegionList));
+    regionName=RegionList{i};
+    if strcmp(regionName,'Telencephalon')
+        Mask=Zbrain_Masks{294,3};
+    elseif strcmp(regionName,'Hindbrain')
+        Hindbrain_Mask=Zbrain_Masks{259,3};
+        Mask=Zbrain_Masks{131,3};
+        IsInEyes_temp=ismember(Hindbrain_Mask,Mask,'rows');IsInEyes_temp=find(IsInEyes_temp==1);%remove cerebellum
+        Hindbrain_Mask(IsInEyes_temp,:)=[];
+        Mask=Zbrain_Masks{295,3};
+        IsInEyes_temp=ismember(Hindbrain_Mask,Mask,'rows');IsInEyes_temp=find(IsInEyes_temp==1);%remove MON
+        Hindbrain_Mask(IsInEyes_temp,:)=[];
+        Mask=Hindbrain_Mask;
+        clearvars Hindbrain_Mask IsInEyes_temp;
+	elseif strcmp(regionName,'pLLG')
+        Mask=Zbrain_Masks{90,3};
+    else
+        Mask=[];
+        IndexC=strfind({Zbrain_Masks{:,2}}, regionName);
+        IndexC=find(not(cellfun('isempty', IndexC)));
+        for j=IndexC
+            if isempty(Mask)
+                Mask=Zbrain_Masks{j,3};
+            else
+                Mask=vertcat(Mask,Zbrain_Masks{j,3});
+            end
+        end
+    end
+    Mask=unique(Mask,'rows');
+    IsInBrainRegion=ismember(round(ROI_rotated),Mask,'rows');
+    PerBrainRegions.(regionName).idx=find(IsInBrainRegion==1);
+end
+clearvars Mask IsInEyes_temp regionName i j k IndexC IsInBrainRegion
+
+for j=1:length(RegionList)
+    regionName=RegionList{j};
+    temp=ZS(PerBrainRegions.(regionName).idx,:);
+    coefficients=struct();
+    rsquared=zeros(1,length(temp));
+    parfor i=1:size(temp,1)
+        mdl=fitlm(flow',temp(i,:));%,'interactions');
+        coefficients(i).coef=mdl.Coefficients;
+        rsquared(i)=mdl.Rsquared.Adjusted;
+    end    
+    LinReg.(regionName).coef=coefficients;
+    LinReg.(regionName).rsquared=rsquared;    
+end
+
+%Kmeans of all
+options = statset('UseParallel',0);
+for j=1:length(RegionList)
+    regionName=RegionList{j};
+    temp=ZS(PerBrainRegions.(regionName).idx,:);
+    idx_temp=find(LinReg.(regionName).rsquared>0.1);
+    LinReg.(regionName).ZS_rsq=temp(idx_temp,:);
+    if length(idx_temp)>1000
+        [idxKmeans Cmap]=kmeans(LinReg.(regionName).ZS_rsq,20,'Replicates',5,'MaxIter',1000,'Display','final');
+        LinReg.(regionName).KmeansCenter=Cmap;
+        LinReg.(regionName).KmeansIdx=idxKmeans;
+    elseif length(idx_temp)>100
+        [idxKmeans Cmap]=kmeans(LinReg.(regionName).ZS_rsq,10,'Replicates',5,'MaxIter',1000,'Display','final');
+        LinReg.(regionName).KmeansCenter=Cmap;
+        LinReg.(regionName).KmeansIdx=idxKmeans;
+    elseif length(idx_temp)>10
+        [idxKmeans Cmap]=kmeans(LinReg.(regionName).ZS_rsq,2,'Replicates',5,'MaxIter',1000,'Display','final');
+        LinReg.(regionName).KmeansCenter=Cmap;
+        LinReg.(regionName).KmeansIdx=idxKmeans;
+    else
+        LinReg.(regionName).KmeansCenter=mean(temp,1);
+        LinReg.(regionName).KmeansIdx=idx_temp;
+    end
+end
+
+%Get the good ones
+for j=1:length(RegionList)
+    regionName=RegionList{j};
+    [~,LinReg.(regionName).GoodBetas]=Test_Regress( LinReg.(regionName).KmeansCenter,flow,LinReg.(regionName).KmeansIdx,0.2);
+end
+
+
+%---------------------------------------------
+%Remove ROIs from outside the brain
+Zbrain_AllMask=vertcat(Zbrain_Masks{[1:1:77 79:1:294],3});
+Zbrain_AllMask=unique(Zbrain_AllMask,'rows');
+%Removing the eyes
+idx_brain=ismember(round(ROI_rotated),Zbrain_AllMask,'rows');
+idx_brain=find(idx_brain>0);
+
+for i=1:length(GoodBetas_select)
+    idx_temp=GoodClusters_goodmembers(i).idx;    
+    CSV_temp=ROI_rotated(idx_temp,:);
+    CSV_temp(:,3)=CSV_temp(:,3);
+    CSV_temp(:,4)=1;
+    filename=strcat('__Coords_clust_Basic',num2str(i),'b.csv');
+    csvwrite(filename,CSV_temp);
+end
+
+CSV_temp=ROI_rotated;
+CSV_temp(:,4)=1;
+csvwrite('__All_fish.csv',CSV_temp);
+
+%---------------------------------------------
+idx_PerBrainRegions=nan(size(idx_Fish));
+RegionList_select={'Thalamus','Cerebellum','Semicircularis','Telencephalon','Tectum','Tegmentum','Habenula','Pretectum','MON','Hindbrain','pLLG'};
+for i=1:length(RegionList_select)
+    regionName=RegionList_select{i};
+    idx_PerBrainRegions(PerBrainRegions.(regionName).idx)=i;
+end
+clearvars Mask IsInEyes_temp regionName i j k IndexC IsInBrainRegion
+
+RegionList_select2={'Thalamus','Cereb','TS','Telencephalon','OT','Tegmentum','Habenula','Pretectum','MON','Hindbrain','pLLG'};
+for i=1:length(GoodBetas_select)
+    idx_temp=GoodClusters_goodmembers(i).idx;
+    Fighandle=figure;set(Fighandle, 'Position', [0, 0, 1000, 500]);
+    h=histogram(idx_PerBrainRegions(idx_temp),'Normalization','probability');
+    h.FaceColor = colors(i,:)/256;
+    h.EdgeColor = 'k';
+    set(gca,'XTickLabel',RegionList_select2);set(gca,'XTick',[1:1:length(RegionList_select)]);set(gca,'XTickLabelRotation',-90)
+    set(gca,'YTick',[0.1:0.1:0.5]);set(gca,'YTickLabel',[10:10:50]);
+    box off
+    ax1 = gca;
+    ax2 = axes('Position', get(ax1, 'Position'), 'FontSize', 10,...
+        'Color','None','XColor','k','YColor','k', 'LineWidth', 1,...
+        'XAxisLocation','top', 'XTick', [],...
+        'YAxisLocation','right', 'YTick', []);
+    linkaxes([ax1, ax2]);
+    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\BrainDistrib_clusters',num2str(i),'.png'),'-dpng','-r0');
+    close;
+end
+
+idxKmeans_ZS_goodmembers_1To8=idxKmeans_ZS_goodmembers;
+for i=1:length(GoodBetas_select)
+    idxKmeans_ZS_goodmembers_1To8(idxKmeans_ZS_goodmembers==GoodBetas_select(i))=i;
+end
+
+
+for i=1:length(RegionList_select)
+    Fighandle=figure;set(Fighandle, 'Position', [0, 0, 1000, 500]);
+    regionName=RegionList_select{i};
+    idx_temp=PerBrainRegions.(regionName).idx;
+    idx_temp=idxKmeans_ZS_goodmembers_1To8(idx_temp);
+    idx_temp(idx_temp==0)=nan;
+    h=histogram(idx_temp,'Normalization','probability');
+    h.FaceColor = [0.5 0.5 0.5];
+    h.EdgeColor = 'k';
+    set(gca,'XTick',[1:1:length(RegionList_select)]);
+    set(gca,'YTick',[0.1:0.1:0.5]);set(gca,'YTickLabel',[10:10:50]);
+    box off
+    ax1 = gca;
+    ax2 = axes('Position', get(ax1, 'Position'), 'FontSize', 10,...
+        'Color','None','XColor','k','YColor','k', 'LineWidth', 1,...
+        'XAxisLocation','top', 'XTick', [],...
+        'YAxisLocation','right', 'YTick', []);
+    linkaxes([ax1, ax2]);
+    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\ClustersDistrib_',regionName,'.png'),'-dpng','-r0');
+    close;
+end
+
+
+CSV_temp=ROI_rotated(idx_PerBrainRegions==0,:);
+CSV_temp(:,4)=1;
+csvwrite('__All_fish.csv',CSV_temp);
+
+CSV_temp=ROI_rotated(idx_PerBrainRegions>0,:);
+CSV_temp(:,4)=1;
+csvwrite('__All_fishb.csv',CSV_temp);
+
+edges=[0:10:200];
+figure;histogram(ROI_rotated(idx_PerBrainRegions>0,3),edges,'Normalization','probability');hold on;histogram(ROI_rotated(idx_PerBrainRegions==0,3),edges,'Normalization','probability');
+figure;histogram(ROI_rotated(:,3),'Normalization','probability');
+figure;histogram(ROI_rotated(idx_PerBrainRegions>0,3),edges,'Normalization','probability');hold on;histogram(Zbrain_AllMask(:,3),edges,'Normalization','probability');
+
+
+back=[55 255 455];
+fwd=[155 355 555];
+StimLength=100;
+TimeToPeak_raw=NaN(length(unique(idx_Fish)),3,2,length(GoodBetas_select));counter2=1;
+for j=GoodBetas_select
+    idx_temp=find(idxKmeans_ZS_goodmembers==j);
+    idx_fish_temp=idx_Fish(idx_temp);
+    counter=1;
+    for fish=(unique(idx_Fish)')
+        if find(idx_fish_temp==fish)
+            tempPlot=mean(ZS(idx_temp(find(idx_fish_temp==fish)),:),1);
+            BackPlot=zeros(3,StimLength);
+            FwdPlot=zeros(3,StimLength);
+            for i=1:3
+                BackPlot(i,:)=tempPlot(back(i):back(i)+99);
+                FwdPlot(i,:)=tempPlot(fwd(i):fwd(i)+99);
+            end
+            [~,RespBWD]=max(BackPlot,[],2);
+            [~,RespFWD]=max(FwdPlot,[],2);
+            TimeToPeak_raw(counter,:,1,counter2)=RespBWD;
+            TimeToPeak_raw(counter,:,2,counter2)=RespFWD;
+        end
+        counter=counter+1;
+    end
+    counter2=counter2+1;
+end
+
+TimeToPeak_AVG=zeros(length(unique(idx_Fish)),length(GoodBetas_select),2);
+for i=1:size(TimeToPeak_AVG,1)
+    for j=1:size(TimeToPeak_AVG,2)
+        RespFWD=TimeToPeak_raw(i,:,2,j);
+        RespBWD=TimeToPeak_raw(i,:,1,j);
+        TimeToPeak_AVG(i,j,1)=nanmean(RespFWD);
+        TimeToPeak_AVG(i,j,2)=nanmean(RespBWD);
+    end
 end

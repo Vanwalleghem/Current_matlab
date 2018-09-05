@@ -1,7 +1,7 @@
 MON_Masks={};
-MaskFiles=dir('*MON.tif');
+MONFiles=dir('*MON.tif');
 
-fname =MaskFiles(1).name;
+fname =MONFiles(1).name;
 temp=strsplit(fname,'Masks\');temp=temp{1};
 Brain_region=regexpi(temp,'(.+) -','tokens');
 if isempty(Brain_region)

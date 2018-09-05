@@ -48,28 +48,14 @@ imagesc(x,y,ZS,[0 5]);colormap hot;set(gca,'YTickLabel',[]);
 
 Numbers=[1 [MatFiles.GoodNumber]];
 counter=1;
-idx_Plane=nan(length(GoodCalcium),1);
+idx_Plane=nan(length(GoodCalcium),1); %Length of the dataset
 idx_Fish=nan(length(GoodCalcium),1);
 name=strcat(MatFiles(1).name);
-[Plane,~]=regexp(name,'\d+_(\d+)_','tokens','match');Plane=str2num(Plane{1}{1});
-% [Plane,~]=regexp(name,'\d\D(\d+)um','tokens','match');Plane=str2num(Plane{1}{1});
+[Plane,~]=regexp(name,'\d+_(\d+)_','tokens','match');Plane=str2num(Plane{1}{1}); %change regex depending on naming scheme
 [Fish,~]=regexp(name,'(\d+)_\d+_','tokens','match');Fish=str2num(Fish{1}{1});
-% [Fish,~]=regexp(name,'(\d)\D\d+um','tokens','match');Fish=str2num(Fish{1}{1});
-% idx_Plane(1:Numbers(2))=Plane;
-% idx_Fish(1:Numbers(2))=Fish;
 for i=1:length(MatFiles)
-	%[Fish,~]=regexp(files{i},'(\d+)_','tokens','match');Fish=str2num(Fish{1}{1});
-    name=strcat(MatFiles(i).name);
-    if findstr(MatFiles(i).name,'2planes')
-        [Plane,~]=regexp(name,'f\d-(\d+)um_','tokens','match');Plane=str2num(Plane{1}{1});
-        [Fish,~]=regexp(name,'f(\d)-\d+um_','tokens','match');Fish=str2num(Fish{1}{1});
-    else
-        [Plane,~]=regexp(name,'\d+_(\d+)_','tokens','match');Plane=str2num(Plane{1}{1});
-        [Fish,~]=regexp(name,'(\d+)_\d+_','tokens','match');Fish=str2num(Fish{1}{1});
-    end
-    %[Plane,~]=regexp(name,'\d+_(\d+)_','tokens','match');Plane=str2num(Plane{1}{1});
-    %[Fish,~]=regexp(name,'(\d+)_\d+_','tokens','match');Fish=str2num(Fish{1}{1});
-   
+    [Plane,~]=regexp(name,'\d+_(\d+)_','tokens','match');Plane=str2num(Plane{1}{1});
+    [Fish,~]=regexp(name,'(\d+)_\d+_','tokens','match');Fish=str2num(Fish{1}{1});
     idx_Plane(Numbers(i):Numbers(i+1))=Plane;
     idx_Fish(Numbers(i):Numbers(i+1))=Fish;
 end
