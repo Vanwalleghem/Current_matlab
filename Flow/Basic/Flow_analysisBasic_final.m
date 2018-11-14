@@ -65,8 +65,15 @@ ZS=zscore(GoodCalcium,1,2);
 ZS2=zscore(GoodCalcium+GoodNoise,1,2);
 x = linspace(0.2,size(ZS,2)/5,size(ZS,2));y = linspace(1,size(ZS,1),size(ZS,1));
 Fighandle=figure;
-set(Fighandle, 'Position', [100, 100, 1200, 900]);
+set(Fighandle, 'Position', [100, 100, 1500, 1500]);
+imagesc(x,y,ZS_rsq(randperm(size(ZS_rsq,1)),:),[-0.5 5]);colormap hot;set(gca,'YTickLabel',[]);
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullRaster_rsq.svg'),'-dsvg','-r0');
+
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1500, 1500]);
 imagesc(x,y,ZS(randperm(size(ZS,1)),:),[-0.5 5]);colormap hot;set(gca,'YTickLabel',[]);
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullRaster_all.svg'),'-dsvg','-r0');
 
 Numbers=[0 [MatFiles.GoodNumber]];
 counter=1;
@@ -395,6 +402,82 @@ for i=1:size(DSI,1)
     end
 end
 
+back=[55 255 455];back=back-5;
+fwd=[155 355 555];fwd=fwd-5;
+StimLength=100;
+DS_raw_inhib=NaN(length(unique(idx_Fish)),3,2,length(3));counter2=1;
+for j=[1 3 4]
+    idx_temp=GoodInhib_goodmembers(j).idx;
+    idx_fish_temp=idx_Fish(idx_temp);
+    counter=1;
+    for fish=(unique(idx_Fish)')
+        if find(idx_fish_temp==fish)
+            tempPlot=mean(ZS(idx_temp(find(idx_fish_temp==fish)),:),1);
+            BackPlot=zeros(3,StimLength);
+            FwdPlot=zeros(3,StimLength);
+            for i=1:3
+                BackPlot(i,:)=tempPlot(back(i):back(i)+99);
+                FwdPlot(i,:)=tempPlot(fwd(i):fwd(i)+99);
+            end
+            RespBWD=min(BackPlot,[],2);RespBWD=RespBWD-abs(max(RespBWD));
+            RespFWD=min(FwdPlot,[],2);RespFWD=RespFWD-abs(max(RespFWD));
+            DS_raw_inhib(counter,:,1,counter2)=RespBWD;
+            DS_raw_inhib(counter,:,2,counter2)=RespFWD;
+        end
+        counter=counter+1;
+    end
+    counter2=counter2+1;
+end
+
+DSI_inhib=zeros(length(unique(idx_Fish)),3,2);
+for i=1:size(DSI_inhib,1)
+    for j=1:size(DSI_inhib,2)
+        RespFWD=DS_raw_inhib(i,:,2,j);
+        RespBWD=DS_raw_inhib(i,:,1,j);
+        DSI_inhib(i,j,1)=nanmean((RespFWD-RespBWD)./(RespFWD+RespBWD));
+        DSI_inhib(i,j,2)=nanstd((RespFWD-RespBWD)./(RespFWD+RespBWD));
+    end
+end
+
+back=[55 255 455];
+fwd=[155 355 555];
+StimLength=100;
+TimeToPeak_raw_inhib=NaN(length(unique(idx_Fish)),3,2,length(GoodBetas_select));counter2=1;
+for j=[1 3 4]
+    idx_temp=GoodInhib_goodmembers(j).idx;
+    idx_fish_temp=idx_Fish(idx_temp);
+    counter=1;
+    for fish=(unique(idx_Fish)')
+        if find(idx_fish_temp==fish)
+            tempPlot=mean(ZS(idx_temp(find(idx_fish_temp==fish)),:),1);
+            BackPlot=zeros(3,StimLength);
+            FwdPlot=zeros(3,StimLength);
+            for i=1:3
+                BackPlot(i,:)=tempPlot(back(i):back(i)+99);
+                FwdPlot(i,:)=tempPlot(fwd(i):fwd(i)+99);
+            end
+            [~,RespBWD]=min(BackPlot,[],2);
+            [~,RespFWD]=min(FwdPlot,[],2);
+            TimeToPeak_raw_inhib(counter,:,1,counter2)=RespBWD;
+            TimeToPeak_raw_inhib(counter,:,2,counter2)=RespFWD;
+        end
+        counter=counter+1;
+    end
+    counter2=counter2+1;
+end
+
+TimeToPeak_AVG_inhib=zeros(length(unique(idx_Fish)),3,2);
+for i=1:size(TimeToPeak_AVG_inhib,1)
+    for j=1:size(TimeToPeak_AVG_inhib,2)
+        RespFWD=TimeToPeak_raw_inhib(i,:,2,j);
+        RespBWD=TimeToPeak_raw_inhib(i,:,1,j);
+        TimeToPeak_AVG_inhib(i,j,1)=nanmean(RespFWD);
+        TimeToPeak_AVG_inhib(i,j,2)=nanmean(RespBWD);
+    end
+end
+
+TimeToPeak_AVG_inhib=TimeToPeak_AVG_inhib/5;
+
 %Spikes are not worth it
 % Fighandle=figure;
 % set(Fighandle, 'Position', [100, 100, 1400, 900]);
@@ -687,6 +770,39 @@ for i=GoodBetas_select
     counter=counter+1;
 end
 
+%Make individual figures of full length + STD + rectangles
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1600, 800]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+counter=1;counter2=1;xplot=1;yplot=1;
+StimLength=655;
+x = linspace(0.2,StimLength/5,StimLength);
+for i=GoodBetas_select    
+    ha = tight_subplot(xplot,yplot,[.01 .01],[.01 .01],[.01 .01]);
+    temp=GoodClusters_goodmembers(counter).mean;
+    std_temp=GoodClusters_goodmembers(counter).STD;        
+    %subplot(xplot,yplot,(2*counter)-1);
+    
+    H=shadedErrorBar(x, temp, std_temp);axis([0 130 -2 5]);
+    H.mainLine.Color=colors(counter,:)/256;
+    H.patch.FaceColor=colors(counter,:)/256;
+    H.edge(1).Color=colors(counter,:)/256;
+    H.edge(2).Color=colors(counter,:)/256;
+    H.mainLine.LineWidth=3;    
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+   %subplot(xplot,yplot,(2*counter));
+    rectangle('FaceColor','m','Position',[11 -2 10 0.25]);rectangle('FaceColor','m','Position',[51 -2 10 0.25]);rectangle('FaceColor','m','Position',[91 -2 10 0.25]);rectangle('FaceColor','g','Position',[31 -2 10 0.25]);rectangle('FaceColor','g','Position',[71 -2 10 0.25]);rectangle('FaceColor','g','Position',[111 -2 10 0.25]);
+    
+    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullPlot_basic_clusters',num2str(counter),'.svg'),'-dsvg','-r0');    
+    
+    
+    imagesc(GoodClusters_goodmembers(counter).ZS(randperm(size(GoodClusters_goodmembers(counter).ZS,1)),:),[-1 4]);colormap hot
+    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);    
+    
+    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullRaster_basic_clusters',num2str(counter),'.svg'),'-dsvg','-r0');    
+    counter=counter+1;
+end
+colorbar;
 
 
 parfor i=1:size(ZS,1)
@@ -813,6 +929,58 @@ for i=1:length(GoodBetas_inhib)
     GoodInhib_goodmembers(i).STD=std(GoodInhib_goodmembers(i).ZS,1,1);       
 end
 
+
+for i=1:length(RegionList_select)
+Fighandle=figure;set(Fighandle, 'Position', [0, 0, 1000, 500]);
+regionName=RegionList_select{i};
+idx_temp=PerBrainRegions.(regionName).idx;
+idx_temp=idxKmeans_ZS_goodinhib(idx_temp);
+idx_temp(idx_temp==0)=nan;
+h=histogram(idx_temp,'Normalization','probability');
+h.FaceColor = [0.5 0.5 0.5];
+h.EdgeColor = 'k';
+set(gca,'XTick',[1:1:length(RegionList_select)]);
+set(gca,'YTick',[0.1:0.1:0.5]);set(gca,'YTickLabel',[10:10:50]);
+box off
+ax1 = gca;
+ax2 = axes('Position', get(ax1, 'Position'), 'FontSize', 10,...
+'Color','None','XColor','k','YColor','k', 'LineWidth', 1,...
+'XAxisLocation','top', 'XTick', [],...
+'YAxisLocation','right', 'YTick', []);
+linkaxes([ax1, ax2]);
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\InhibClustersDistrib_',regionName,'.png'),'-dpng','-r0');
+close;
+end
+
+
+colors_inhib=colors([7 1 2 4],:);
+%Make individual figures of full length + STD + rectangles
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1600, 800]);
+set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+counter=1;counter2=1;xplot=1;yplot=1;
+StimLength=655;
+x = linspace(0.2,StimLength/5,StimLength);
+for i=GoodBetas_inhib
+ha = tight_subplot(xplot,yplot,[.01 .01],[.01 .01],[.01 .01]);
+temp=GoodInhib_goodmembers(counter).mean;
+std_temp=GoodInhib_goodmembers(counter).STD;
+%subplot(xplot,yplot,(2*counter)-1);
+H=shadedErrorBar(x, temp, std_temp);axis([0 130 -2 5]);
+H.mainLine.Color=colors_inhib(counter,:)/256;
+H.patch.FaceColor=colors_inhib(counter,:)/256;
+H.edge(1).Color=colors_inhib(counter,:)/256;
+H.edge(2).Color=colors_inhib(counter,:)/256;
+H.mainLine.LineWidth=3;
+set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+%subplot(xplot,yplot,(2*counter));
+rectangle('FaceColor','m','Position',[11 -2 10 0.25]);rectangle('FaceColor','m','Position',[51 -2 10 0.25]);rectangle('FaceColor','m','Position',[91 -2 10 0.25]);rectangle('FaceColor','g','Position',[31 -2 10 0.25]);rectangle('FaceColor','g','Position',[71 -2 10 0.25]);rectangle('FaceColor','g','Position',[111 -2 10 0.25]);
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullPlot_inhib_clusters',num2str(counter),'.svg'),'-dsvg','-r0');
+imagesc(GoodInhib_goodmembers(counter).ZS(randperm(size(GoodInhib_goodmembers(counter).ZS,1)),:),[-1 4]);colormap hot
+set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullRaster_inhib_clusters',num2str(counter),'.svg'),'-dsvg','-r0');
+counter=counter+1;
+end
 
 %All brain regions
 load('V:\Gilles\Zbrain_Masks.mat', 'Zbrain_Masks')
@@ -953,6 +1121,17 @@ CSV_temp=ROI_rotated;
 CSV_temp(:,4)=1;
 csvwrite('__All_fish.csv',CSV_temp);
 
+
+for i=1:length(GoodBetas_inhib)
+    idx_temp=GoodInhib_goodmembers(i).idx;   
+    CSV_temp=ROI_rotated(idx_temp,:);
+    CSV_temp(:,3)=CSV_temp(:,3);
+    CSV_temp(:,4)=1;
+    filename=strcat('__Coords_clust_BasicInhib',num2str(i),'.csv');
+    csvwrite(filename,CSV_temp);
+end
+
+
 %---------------------------------------------
 idx_PerBrainRegions=nan(size(idx_Fish));
 RegionList_select={'Thalamus','Cerebellum','Semicircularis','Telencephalon','Tectum','Tegmentum','Habenula','Pretectum','MON','Hindbrain','pLLG'};
@@ -970,7 +1149,7 @@ for i=1:length(GoodBetas_select)
     h.FaceColor = colors(i,:)/256;
     h.EdgeColor = 'k';
     set(gca,'XTickLabel',RegionList_select2);set(gca,'XTick',[1:1:length(RegionList_select)]);set(gca,'XTickLabelRotation',-90)
-    set(gca,'YTick',[0.1:0.1:0.5]);set(gca,'YTickLabel',[10:10:50]);
+    set(gca,'YTick',[0.1:0.1:0.5]);set(gca,'YTickLabel',[10:10:50]);ylim([0 45]);
     box off
     ax1 = gca;
     ax2 = axes('Position', get(ax1, 'Position'), 'FontSize', 10,...
@@ -979,6 +1158,7 @@ for i=1:length(GoodBetas_select)
         'YAxisLocation','right', 'YTick', []);
     linkaxes([ax1, ax2]);
     print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\BrainDistrib_clusters',num2str(i),'.png'),'-dpng','-r0');
+    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\BrainDistrib_clusters',num2str(i),'.svg'),'-dsvg','-r0');
     close;
 end
 
@@ -1024,6 +1204,15 @@ figure;histogram(ROI_rotated(idx_PerBrainRegions>0,3),edges,'Normalization','pro
 figure;histogram(ROI_rotated(:,3),'Normalization','probability');
 figure;histogram(ROI_rotated(idx_PerBrainRegions>0,3),edges,'Normalization','probability');hold on;histogram(Zbrain_AllMask(:,3),edges,'Normalization','probability');
 
+DSI=zeros(length(unique(idx_Fish)),length(GoodBetas_select),2);
+for i=1:size(DSI,1)
+    for j=1:size(DSI,2)
+        RespFWD=DS_raw(i,:,2,j);
+        RespBWD=DS_raw(i,:,1,j);
+        DSI(i,j,1)=nanmean((RespFWD-RespBWD)./(RespFWD+RespBWD));
+        DSI(i,j,2)=nanstd((RespFWD-RespBWD)./(RespFWD+RespBWD));
+    end
+end
 
 back=[55 255 455];
 fwd=[155 355 555];
@@ -1061,3 +1250,59 @@ for i=1:size(TimeToPeak_AVG,1)
         TimeToPeak_AVG(i,j,2)=nanmean(RespBWD);
     end
 end
+
+
+for i=1:length(GoodBetas_select)
+    idx_temp=GoodClusters_goodmembers(i).idx;
+    SpatialLoc_basic(i).ROIs=ROI_rotated(idx_temp,:);
+    [SpatialLoc_basic(i).coeff,SpatialLoc_basic(i).score,~,~,SpatialLoc_basic(i).explained,~] = pca(ROI_rotated(idx_temp,:));
+    SpatialLoc_basic(i).explained
+end
+
+for i=1:length(GoodBetas_select)
+SpatialLoc_basic(i).explained(1)
+end
+
+ksTest_PCA_xyz_basic=struct();
+for i=1:length(GoodBetas_select)
+    for j=1:length(GoodBetas_select)
+        [ksTest_PCA_xyz_basic.h(i,j),ksTest_PCA_xyz_basic.p(i,j),ksTest_PCA_xyz_basic.ks2stat(i,j)]=kstest2(SpatialLoc_basic(i).score(:,1),SpatialLoc_basic(j).score(:,1));
+    end
+end
+
+p_val_list=[];counter=1;
+for i=1:length(GoodBetas_select)
+    for j=1:length(GoodBetas_select)
+        if j>i
+            p_val_list(counter)=ksTest_PCA_xyz_basic.p(i,j);
+            counter=counter+1;
+        end
+    end
+end
+[corr_p_val_list,h]=bonf_holm(p_val_list);
+
+
+
+counter=1;
+for i=1:length(GoodBetas_select)
+    for j=1:length(GoodBetas_select)
+        if j>i
+             counter=counter+1;
+        end
+    end
+end
+
+regionName='pLLG';
+idx_temp=PerBrainRegions.(regionName).idx;
+idx_K=idxKmeans_ZS_goodmembers_1To8(idx_temp);
+GB_pLLG=unique(idx_temp);
+GB_pLLG(GB_pLLG==0)=[];
+figure;
+pLLG_clusters=[];
+for i=1:length(GB_pLLG)
+    idx_Plot=find(idx_K==GB_pLLG(i));
+    pLLG_clusters(i,:)=mean(ZS(idx_temp(idx_Plot),:),1);
+    
+end
+
+figure;imagesc(ZS(idx_temp,:));
