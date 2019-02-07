@@ -1162,6 +1162,7 @@ for i=1:length(GoodBetas_select)
     close;
 end
 
+
 idxKmeans_ZS_goodmembers_1To8=idxKmeans_ZS_goodmembers;
 for i=1:length(GoodBetas_select)
     idxKmeans_ZS_goodmembers_1To8(idxKmeans_ZS_goodmembers==GoodBetas_select(i))=i;
@@ -1281,8 +1282,6 @@ for i=1:length(GoodBetas_select)
 end
 [corr_p_val_list,h]=bonf_holm(p_val_list);
 
-
-
 counter=1;
 for i=1:length(GoodBetas_select)
     for j=1:length(GoodBetas_select)
@@ -1306,3 +1305,6 @@ for i=1:length(GB_pLLG)
 end
 
 figure;imagesc(ZS(idx_temp,:));
+
+
+
