@@ -817,10 +817,15 @@ for fish_nb=1:length(Fish_list)
 end
 clearvars i j k ROI Centroids M I I_row I_col test temp image_name filename fish fish_nb
 
+idx_speed=Speed_encoders(1).idx;
 ROI_speed=ROI_rotated(idx_speed,:);
 ROI_speed(:,4)=1;
 csvwrite('Speed_encoding_ROIs.csv',ROI_speed);
 
+idx_speed=Speed_encoders(2).idx;
+ROI_speed=ROI_rotated(idx_speed,:);
+ROI_speed(:,4)=1;
+csvwrite('Slow_encoding_ROIs.csv',ROI_speed);
 
 %Onset encodes change of speed
 [idxKmeans_Speed Cmap_Speed]=kmeans(ZS2(:,sum(Speed_flow,1)>0),40,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
@@ -841,4 +846,84 @@ for i=1:length(back)
 end
 for i=1:length(fwd)    
     Speed_flow(2,fwd(i):fwd_off(i))=slow_fast_fwd(i);
+end
+
+
+%Test Acceleration encoding
+Accel_flow=zeros(2,size(ZS2,2));
+back=    [56 256 557 1006 1106 1466 1827 2086]-5; %Infuse
+back_off=[106 356 706 1056 1206 1516 1926 2176];
+fwd=    [156 407 757 856 1256 1316 1526 1626 1986 2236]-5; %Withdraw
+fwd_off=[206 506 806 956 1306 1366 1576 1776 2036 2286];
+%back=back/5;back_off=back_off/5;
+%fwd=fwd/5;fwd_off=fwd_off/5;
+Decel_fast=[1 2 3 2 1 2 2 1];
+Decel_fast_fwd=[2 1 1 2 2 2 2 3 1 1];
+for i=1:length(back)
+    Accel_flow(1,back(i):back_off(i))=Decel_fast(i);
+end
+for i=1:length(fwd)    
+    Accel_flow(2,fwd(i):fwd_off(i))=Decel_fast_fwd(i);
+end
+
+Accel_times=[];
+temp=find(Accel_flow(1,:)==3);
+Accel_times(1,1)=temp(find(Speed_flow(1,temp)==1,1));
+Accel_times(1,2)=temp(find(Speed_flow(1,temp)==2,1));
+temp=find(Accel_flow(2,:)==3);
+Accel_times(2,1)=temp(find(Speed_flow(2,temp)==1,1));
+Accel_times(2,2)=temp(find(Speed_flow(2,temp)==2,1));
+
+Max_back_accel=zeros(2,size(ZS2,1));
+Max_fwd_accel=zeros(2,size(ZS2,1));
+for i=1:2
+    Max_back_accel(i,:)=max(ZS2(:,Accel_times(1,i):Accel_times(1,i)+40),[],2);    
+    Max_fwd_accel(i,:)=max(ZS2(:,Accel_times(2,i):Accel_times(2,i)+40),[],2);    
+end
+
+Accel_encode_idx=find(Max_back_accel(1,:)<Max_back_accel(2,:));
+Decel_encode_idx=find(Max_back_accel(1,:)>Max_back_accel(2,:));
+[idxKmeans_AccelBack Cmap_AccelBack]=kmeans(ZS2(Accel_encode_idx,1:1000),10,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');Threshold=0.2;
+[Model_AccelBack,GoodBetas_AccelBack]=Test_Regress(Cmap_AccelBack,NewFlow(:,1:1000),idxKmeans_AccelBack,Threshold);
+[idxKmeans_DecelBack Cmap_DecelBack]=kmeans(ZS2(Decel_encode_idx,1:1000),10,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
+[Model_DecelBack,GoodBetas_DecelBack]=Test_Regress(Cmap_DecelBack,NewFlow(:,1:1000),idxKmeans_DecelBack,Threshold);
+
+Accel_FWD_encode_idx=find(Max_fwd_accel(1,:)<Max_fwd_accel(2,:));
+Decel_FWD_encode_idx=find(Max_fwd_accel(1,:)>Max_fwd_accel(2,:));
+
+[idxKmeans_AccelFwd Cmap_AccelFwd]=kmeans(ZS2(Accel_FWD_encode_idx,1200:end),10,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
+[Model_AccelFwd,GoodBetas_AccelFwd]=Test_Regress(Cmap_AccelFwd,NewFlow(:,1200:end),idxKmeans_AccelFwd,Threshold);
+[idxKmeans_DecelFwd Cmap_DecelFwd]=kmeans(ZS2(Decel_FWD_encode_idx,1200:end),10,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
+[Model_DecelFwd,GoodBetas_DecelFwd]=Test_Regress(Cmap_DecelFwd,NewFlow(:,1200:end),idxKmeans_DecelFwd,Threshold);
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 800, 800]);
+ha=tight_subplot(1,length(GoodBetas_AccelBack));
+for i=1:length(GoodBetas_AccelBack)
+    axes(ha(i));
+    plot(Cmap_AccelBack(GoodBetas_AccelBack(i),:));hold on;plot(sum(Speed_flow(:,1:1000),1)/5);
+end
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1600, 800]);
+ha=tight_subplot(1,length(GoodBetas_DecelBack));
+for i=1:length(GoodBetas_DecelBack)
+    axes(ha(i));
+    plot(Cmap_DecelBack(GoodBetas_DecelBack(i),:));hold on;plot(sum(Speed_flow(:,1:1000),1)/5);
+end
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1600, 800]);
+ha=tight_subplot(1,length(GoodBetas_AccelFwd));
+for i=1:length(GoodBetas_AccelFwd)
+    axes(ha(i));
+    plot(Cmap_AccelFwd(GoodBetas_AccelFwd(i),:));hold on;plot(sum(Speed_flow(:,1200:end),1)/5);
+end
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1600, 800]);
+ha=tight_subplot(1,length(GoodBetas_DecelFwd));
+for i=1:length(GoodBetas_DecelFwd)
+    axes(ha(i));
+    plot(Cmap_DecelFwd(GoodBetas_DecelFwd(i),:));hold on;plot(sum(Speed_flow(:,1200:end),1)/5);
 end
