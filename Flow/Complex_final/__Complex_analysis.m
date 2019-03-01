@@ -49,13 +49,6 @@ end
 clearvars GCaMP6 back back_off fwd fwd_off;
 NewFlow(7,:)=[0:size(ZS2,2):1];
 
-parfor i=1:size(ZS2,1)
-    mdl=fitlm(NewFlow',ZS2(i,:));    
-    model_NewFlow(i).coef=mdl.Coefficients;        
-    model_NewFlow(i).rsquared=mdl.Rsquared.Adjusted;
-end
-clearvars slow_fast slow_fast_fwd i
-
 NewFlow_basic=zeros(8,size(ZS2,2));
 load('D:\Pictures\processed\Flow\BasicClusters.mat');
 GCaMP6=[-0.104392135015146,1.69644104899772,5.13796058542217,8.27886020152244,10.3756715204800,11.8173714529814,12.2425184714093,10.8571417354877,8.80831829681196,6.91339112244670,5.46959264663869,4.30868766622567,3.42533619066766,2.75378443486879,2.18017250852183,1.72816235135824,1.32732537295463,1.00684435500268,0.730210038304555,0.530242444093118,0.362253250339685,0.227668255288566,0.0869242416152502,0.000718266708050853,-0.0828334873368325]';
@@ -65,19 +58,27 @@ back_off=[106 356 706 1056 1206 1516 1926 2176];
 fwd=    [156 407 757 856 1256 1316 1526 1626 1986 2236]; %Withdraw
 fwd_off=[206 506 806 956 1306 1366 1576 1776 2036 2286];
 for i=1:length(back)
-    NewFlow_basic(1,back(i):back(i)+100)=Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256)));
-    NewFlow_basic(2,back(i):back(i)+100)=Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256)));
-    NewFlow_basic(3,back_off(i):back_off(i)+size(GCaMP6,1)-1)=GCaMP6';
-    NewFlow_basic(7,back(i):back(i)+100)=Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256)));
+    NewFlow_basic(1,back(i):back(i)+100)=Basic_Clusters(1,56:156)+abs(min(Basic_Clusters(1,56:156)));
+    NewFlow_basic(2,back(i):back(i)+100)=Basic_Clusters(2,56:156)+abs(min(Basic_Clusters(2,56:156)));
+    NewFlow_basic(3,back(i):back(i)+100)=Basic_Clusters(3,56:156)+abs(min(Basic_Clusters(3,56:156)));
+    NewFlow_basic(7,back(i):back(i)+100)=Basic_Clusters(7,56:156)+abs(min(Basic_Clusters(7,56:156)));
+    NewFlow_basic(4,back(i):back(i)+100)=Basic_Clusters(4,56:156)+abs(min(Basic_Clusters(4,56:156)));
+    NewFlow_basic(5,back(i):back(i)+100)=Basic_Clusters(5,56:156)+abs(min(Basic_Clusters(5,56:156)));
+    NewFlow_basic(6,back(i):back(i)+100)=Basic_Clusters(6,56:156)+abs(min(Basic_Clusters(6,56:156)));
+    NewFlow_basic(8,back(i):back(i)+100)=Basic_Clusters(8,56:156)+abs(min(Basic_Clusters(8,56:156)));
 end
 for i=1:length(fwd)
-    NewFlow_basic(4,fwd(i):fwd(i)+100)=Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256)));
-    NewFlow_basic(5,fwd(i):fwd(i)+100)=Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256)));
-    NewFlow_basic(6,fwd_off(i):fwd_off(i)+size(GCaMP6,1)-1)=GCaMP6';
+    NewFlow_basic(1,fwd(i):fwd(i)+100)=Basic_Clusters(1,156:256)+abs(min(Basic_Clusters(1,156:256)));
+    NewFlow_basic(2,fwd(i):fwd(i)+100)=Basic_Clusters(2,156:256)+abs(min(Basic_Clusters(2,156:256)));
+    NewFlow_basic(3,fwd(i):fwd(i)+100)=Basic_Clusters(3,156:256)+abs(min(Basic_Clusters(3,156:256)));
+    NewFlow_basic(7,fwd(i):fwd(i)+100)=Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256)));
+    NewFlow_basic(4,fwd(i):fwd(i)+100)=Basic_Clusters(4,156:256)+abs(min(Basic_Clusters(4,156:256)));
+    NewFlow_basic(5,fwd(i):fwd(i)+100)=Basic_Clusters(5,156:256)+abs(min(Basic_Clusters(5,156:256)));
+    NewFlow_basic(6,fwd(i):fwd(i)+100)=Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256)));
     NewFlow_basic(8,fwd(i):fwd(i)+100)=Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256)));
 end
 clearvars GCaMP6 GCaMP6s back back_off fwd fwd_off fwd_basic fwd_long fwd_three NewFlow2
-NewFlow_basic(9,:)=[0:size(ZS2,2):1];
+NewFlow_basic(9,:)=[0:1/size(ZS2,2):1-1/size(ZS2,2)];
 
 PredictFlow=zeros(8,size(ZS2,2));
 GCaMP6=[-0.104392135015146,1.69644104899772,5.13796058542217,8.27886020152244,10.3756715204800,11.8173714529814,12.2425184714093,10.8571417354877,8.80831829681196,6.91339112244670,5.46959264663869,4.30868766622567,3.42533619066766,2.75378443486879,2.18017250852183,1.72816235135824,1.32732537295463,1.00684435500268,0.730210038304555,0.530242444093118,0.362253250339685,0.227668255288566,0.0869242416152502,0.000718266708050853,-0.0828334873368325]';
@@ -90,41 +91,24 @@ fwd=    [156 757 1256 1316 1526 1986 2236]; %Withdraw
 fwd_long= [407 856];
 fwd_three=1626;
 fwd_off=[206 506 806 956 1306 1366 1576 1776 2036 2286];
-for i=1:length(back)
-    PredictFlow(1,back(i):back(i)+100)=Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256)));
-    PredictFlow(2,back(i):back(i)+100)=Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256)));    
-    PredictFlow(7,back(i):back(i)+100)=Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256)));
-end
-for i=1:length(back_off)
-    PredictFlow(3,back_off(i):back_off(i)+size(GCaMP6,1)-1)=GCaMP6';
-end
-for i=1:length(back_long)
-    PredictFlow(1,back_long(i):back_long(i)+201)=interp(Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256))),2);
-    PredictFlow(2,back_long(i):back_long(i)+201)=interp(Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256))),2);    
-    PredictFlow(7,back_long(i):back_long(i)+201)=interp(Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256))),2);
-end
-PredictFlow(1,back_three:back_three+302)=interp(Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256))),3);
-PredictFlow(2,back_three:back_three+302)=interp(Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256))),3);    
-PredictFlow(7,back_three:back_three+302)=interp(Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256))),3);
-for i=1:length(fwd)
-    PredictFlow(4,fwd(i):fwd(i)+100)=Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256)));
-    PredictFlow(5,fwd(i):fwd(i)+100)=Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256)));
-    PredictFlow(6,fwd_off(i):fwd_off(i)+size(GCaMP6,1)-1)=GCaMP6';
-    PredictFlow(8,fwd(i):fwd(i)+100)=Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256)));
-end
-for i=1:length(fwd_long)
-    PredictFlow(4,fwd_long(i):fwd_long(i)+100)=Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256)));
-    PredictFlow(5,fwd_long(i):fwd_long(i)+100)=Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(7,156:256)));
-    PredictFlow(8,fwd(i):fwd(i)+201)=interp(Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256))),2);
-end
-PredictFlow(4,fwd_three:fwd_three+302)=interp(Basic_Clusters(6,156:256)+abs(min(Basic_Clusters(6,156:256))),3);
-PredictFlow(5,fwd_three:fwd_three+302)=interp(Basic_Clusters(7,156:256)+abs(min(Basic_Clusters(7,156:256))),3);    
-PredictFlow(8,fwd_three:fwd_three+302)=interp(Basic_Clusters(8,156:256)+abs(min(Basic_Clusters(8,156:256))),3);
-for i=1:length(fwd_off)
-    PredictFlow(6,fwd_off(i):fwd_off(i)+size(GCaMP6,1)-1)=GCaMP6';
+for clust_nb = 1:8
+    for i=1:length(back)
+        PredictFlow(clust_nb,back(i):back(i)+100)=Basic_Clusters(clust_nb,56:156)+abs(min(Basic_Clusters(clust_nb,56:156)));
+    end
+    for i=1:length(back_long)
+        PredictFlow(clust_nb,back_long(i):back_long(i)+201)=interp(Basic_Clusters(clust_nb,56:156)+abs(min(Basic_Clusters(clust_nb,56:156))),2);
+    end
+    PredictFlow(clust_nb,back_three:back_three+302)=interp(Basic_Clusters(clust_nb,56:156)+abs(min(Basic_Clusters(clust_nb,56:156))),3);
+    for i=1:length(fwd)
+        PredictFlow(clust_nb,fwd(i):fwd(i)+100)=Basic_Clusters(clust_nb,156:256)+abs(min(Basic_Clusters(clust_nb,156:256)));
+    end
+    for i=1:length(fwd_long)
+        PredictFlow(clust_nb,fwd_long(i):fwd_long(i)+201)=interp(Basic_Clusters(clust_nb,156:256)+abs(min(Basic_Clusters(clust_nb,156:256))),2);
+    end
+    PredictFlow(clust_nb,fwd_three:fwd_three+302)=interp(Basic_Clusters(clust_nb,156:256)+abs(min(Basic_Clusters(clust_nb,156:256))),3);
 end
 clearvars GCaMP6 GCaMP6s back back_off fwd fwd_off back_long back_three fwd_long;
-PredictFlow(9,:)=[0:size(ZS2,2):1];
+PredictFlow(9,:)=[0:1/size(ZS2,2):1-1/size(ZS2,2)];
 
 parfor i=1:size(ZS2,1)
     mdl=fitlm(NewFlow_basic',ZS2(i,:));    
@@ -158,19 +142,21 @@ subplot(3,1,1);imagesc(Cmap_NewFlow);
 subplot(3,1,2);imagesc(Cmap_basic);
 subplot(3,1,3);imagesc(Cmap_predict);
 
-Threshold=0.2;
+Threshold=0.3;
 [Model_NewFlow,GoodBetas_NewFlow]=Test_Regress(Cmap_NewFlow,NewFlow,idxKmeans_NewFlow,Threshold);
 [Model_basic,GoodBetas_basic]=Test_Regress(Cmap_basic,NewFlow_basic,idxKmeans_basic,Threshold);
 [Model_predict,GoodBetas_predict]=Test_Regress(Cmap_predict,PredictFlow,idxKmeans_predict,Threshold);
 
-ZS_rsq=ZS2(idx_rsq_predict,:);
 
-Corr_BasicCLust=zeros(size(Basic_Clusters,1),size(ZS_rsq,1));
+idx_rsq_all=union(union(idx_rsq_NewFlow,idx_rsq_predict),idx_rsq_basic);
+ZS_rsq=ZS2(idx_rsq_all,:);
+
+Corr_BasicCLust=zeros(size(Basic_Clusters,1),size(ZS2,1));
 start_complex=[155 1005];start_basic=[155 258];duration=90;
 
-parfor i=1:size(ZS_rsq,1)
+parfor i=1:size(ZS2,1)
     corr_temp=[];
-    ZS_rsq_temp=detrend([ZS_rsq(i,start_complex(1):start_complex(1)+duration) ZS_rsq(i,start_complex(2):start_complex(2)+duration)]);
+    ZS_rsq_temp=detrend([ZS2(i,start_complex(1):start_complex(1)+duration) ZS2(i,start_complex(2):start_complex(2)+duration)]);
     for j=1:size(Basic_Clusters,1)
         Basic_temp=[Basic_Clusters(j,start_basic(1):start_basic(1)+duration) Basic_Clusters(j,start_basic(2):start_basic(2)+duration)];
         temp=corrcoef(ZS_rsq_temp, Basic_temp);
@@ -182,19 +168,23 @@ parfor i=1:size(ZS_rsq,1)
 end
 
 [MaxCorr_BasiClust MaxCorr_BasiClust_ind]=max(abs(Corr_BasicCLust),[],1);
-idx_BasicClust_corr=find(MaxCorr_BasiClust>0.5);
+idx_BasicClust_corr=find(MaxCorr_BasiClust>0.4);
 BasicClustData=[];
 for basic=1:max(MaxCorr_BasiClust_ind)
     idx_BasicClust_temp=find(MaxCorr_BasiClust_ind(idx_BasicClust_corr)==basic);
-    BasicClustData(basic).ZS=ZS_rsq(idx_BasicClust_corr(idx_BasicClust_temp),:);
+    BasicClustData(basic).ZS=ZS2(idx_BasicClust_corr(idx_BasicClust_temp),:);
     BasicClustData(basic).mean=mean(BasicClustData(basic).ZS,1);      
+    ZS_temp=BasicClustData(basic).ZS;
+    [BasicClustData(basic).idxKmeans BasicClustData(basic).Cmap]=kmeans(ZS_temp,10,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
+    [BasicClustData(basic).Model,BasicClustData(basic).GoodBetas]=Test_Regress(BasicClustData(basic).Cmap,NewFlow_basic,BasicClustData(basic).idxKmeans,Threshold);
 end
+clearvars basic ZS_temp idx_BasicClust_temp
 
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1300, 900]);
 counter=1;xplot=floor(sqrt(max(MaxCorr_BasiClust_ind)));yplot=ceil(max(MaxCorr_BasiClust_ind)/xplot);
 for i=1:max(MaxCorr_BasiClust_ind)    
-    subplot(xplot,yplot,counter);plot(x,BasicClustData(i).mean);xlim([0 500]); %hold on;plot(x,(double(Flow_profile2)/10)-1)
+    subplot(xplot,yplot,counter);plot(x,BasicClustData(i).mean);xlim([0 150]); %hold on;plot(x,(double(Flow_profile2)/10)-1)
     counter=counter+1;
 end
 
@@ -206,8 +196,8 @@ for i=1:max(MaxCorr_BasiClust_ind)
     counter=counter+1;
 end
 
-GoodBetas_NewFlow_select=GoodBetas_NewFlow([1 2 4 5 7 9 11 12 13 15 17 19 21 23 27 31 32]);
-GoodBetas_NewFlow_select=GoodBetas_NewFlow_select([2 5 6 7 8 12 13 15 16 17]);
+GoodBetas_NewFlow_select=GoodBetas_NewFlow([1 2 3 4 5 6 9 12 16 17 18 19 22 23 25 26]);
+GoodBetas_NewFlow_select=GoodBetas_NewFlow_select([1 4 5 6 7 8 9 10 12 13 14 15 16]);
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1300, 900]);
 counter=1;xplot=4;yplot=ceil(length(GoodBetas_NewFlow_select)/2);
@@ -215,9 +205,9 @@ ha=tight_subplot(yplot,xplot);
 for i=1:length(GoodBetas_NewFlow_select)
     idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));
     axes(ha(counter));
-    temp=mean(ZS2(idx_rsq_NewFlow(idx_temp),1:500),1);
-    std_temp=std(ZS2(idx_rsq_NewFlow(idx_temp),1:500),1,1);
-    H=shadedErrorBar(x(1:500), temp, std_temp);axis([0 100 -2 5]);title(num2str((i)));hold on;
+    temp=mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1);
+    std_temp=std(ZS2(idx_rsq_NewFlow(idx_temp),:),1,1);
+    H=shadedErrorBar(x, temp, std_temp);axis([0 450 -2 5]);title(num2str((i)));hold on;
     for jj=1:length(back)
         rectangle('EdgeColor','k','FaceColor','g','Position',[back(jj)/5 -1 abs(back(jj)-back_off(jj))/5 0.25]);
     end
@@ -226,12 +216,12 @@ for i=1:length(GoodBetas_NewFlow_select)
     end    
     hold off;
     axes(ha(counter+1));
-    imagesc(ZS2(idx_rsq_NewFlow(idx_temp),1:500),[-2 5]);colormap hot;
-    counter=counter+2;
+    imagesc(ZS2(idx_rsq_NewFlow(idx_temp),:),[-2 5]);colormap hot;
+    counter=counter+2;    
 end
 
-GoodBetas_basic_select=GoodBetas_basic([1 3 4 5 6 7 8 9 11 12 14 16 17 18 19 21 22 23 26 28 29 30 33 34 35 36]);
-GoodBetas_basic_select=GoodBetas_basic_select([1 2 3 4 7 10 11 12 14 15 18 19 22 23 24 25 26]);
+GoodBetas_basic_select=GoodBetas_basic([1 2 4 9 11 12 15 16 17 19 21 22 23 25 26 27 29 30]);
+GoodBetas_basic_select=GoodBetas_basic_select([1 2 3 4 5 6 7 8 11 12 14 15 16 17 18]);
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1300, 900]);
 counter=1;xplot=4;yplot=ceil(length(GoodBetas_basic_select)/2);
@@ -241,7 +231,7 @@ for i=1:length(GoodBetas_basic_select)
     axes(ha(counter));
     temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);
     std_temp=std(ZS2(idx_rsq_basic(idx_temp),:),1,1);
-    H=shadedErrorBar(x, temp, std_temp);axis([0 500 -2 5]);title(num2str((i)));hold on;
+    H=shadedErrorBar(x, temp, std_temp);axis([0 300 -2 5]);title(num2str((i)));hold on;
     for jj=1:length(back)
         rectangle('EdgeColor','k','FaceColor','g','Position',[back(jj)/5 -1 abs(back(jj)-back_off(jj))/5 0.25]);
     end
@@ -254,8 +244,8 @@ for i=1:length(GoodBetas_basic_select)
     counter=counter+2;
 end
 
-GoodBetas_predict_select=GoodBetas_predict([2 3 4 5 10 11 12 19 20 23 26 30 ]);
-GoodBetas_predict_select=GoodBetas_predict_select([2 3 4 5 7 10]);
+GoodBetas_predict_select=GoodBetas_predict([1 2 6 8 10 12 13 15 17 18 19 20 24]);
+%GoodBetas_predict_select=GoodBetas_predict_select([2 3 4 5 7 10]);
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1300, 900]);
 counter=1;xplot=4;yplot=ceil(length(GoodBetas_predict_select)/2);
@@ -349,28 +339,6 @@ for i=1:length(GoodBetas_basic_select)
     imagesc(ZS2(idx_rsq_basic(idx_temp),idx_speed),[-2 5]);colormap hot;
     counter=counter+2;
 end
-
-GoodBetas_predict_select=GoodBetas_predict([2 3 4 5 10 11 12 19 20 23 26 30 ]);
-GoodBetas_predict_select=GoodBetas_predict_select([2 3 4 5 7 10]);
-Fighandle=figure;
-set(Fighandle, 'Position', [100, 100, 1300, 900]);
-counter=1;xplot=4;yplot=ceil(length(GoodBetas_predict_select)/2);
-ha=tight_subplot(yplot,xplot);
-for i=1:length(GoodBetas_predict_select)
-    idx_temp=find(idxKmeans_predict==GoodBetas_predict_select(i));
-    axes(ha(counter));
-    temp=mean(ZS2(idx_rsq_predict(idx_temp),:),1);
-    std_temp=std(ZS2(idx_rsq_predict(idx_temp),:),1,1);    
-    idx_speed=find(sum(Speed_flow,1)>0);
-    axes(ha(counter));
-    H=shadedErrorBar(x(1:length(idx_speed)), temp(idx_speed), std_temp(idx_speed));axis([0 300 -2 5]);title(num2str((i)));hold on;
-    plot(x(1:length(idx_speed)),Speed_flow(1,idx_speed),'Color','m');hold on;
-    plot(x(1:length(idx_speed)),Speed_flow(2,idx_speed),'Color','g');hold off;
-    axes(ha(counter+1));
-    imagesc(ZS2(idx_rsq_predict(idx_temp),idx_speed),[-2 5]);colormap hot;
-    counter=counter+2;
-end
-
 
 for i=1:numel(GoodBetas_NewFlow_select)
     idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));    
@@ -598,6 +566,25 @@ end
 %Kmeans on the max response to fwd flow (4 slow, 5 fast, 1 mix)
 [idxKmeans_MaxFlow Cmap_MaxFlow]=kmeans(Max_flow([2 3 9 10 11 15 18 1 4 5 6 7 12 14 16 17 8 13],idx_rsq_NewFlow)',20,'Options',options,'Replicates',3,'MaxIter',1000,'Display','final');
 %Kmeans on the max response to bwd flow (3 slow, 4 fast, 1 mix)
+
+
+%Test Speed encoding
+Speed_flow=zeros(2,size(ZS2,2));
+back=    [56 256 557 1006 1106 1466 1827 2086]-5; %Infuse
+back_off=[106 356 706 1056 1206 1516 1926 2176];
+fwd=    [156 407 757 856 1256 1316 1526 1626 1986 2236]-5; %Withdraw
+fwd_off=[206 506 806 956 1306 1366 1576 1776 2036 2286];
+%back=back/5;back_off=back_off/5;
+%fwd=fwd/5;fwd_off=fwd_off/5;
+slow_fast=[1 2 3 2 1 2 2 1];
+slow_fast_fwd=[2 1 1 2 2 2 2 3 1 1];
+for i=1:length(back)
+    Speed_flow(1,back(i):back_off(i))=slow_fast(i);
+end
+for i=1:length(fwd)    
+    Speed_flow(2,fwd(i):fwd_off(i))=slow_fast_fwd(i);
+end
+
 
 Speed_encode_idx=find(mean(Max_flow(Fast_speed_idx,:),1)>(mean(Max_flow(Slow_speed_idx,:),1)+2*std(Max_flow(Slow_speed_idx,:),1,1)));
 figure;
@@ -831,22 +818,6 @@ csvwrite('Slow_encoding_ROIs.csv',ROI_speed);
 [idxKmeans_Speed Cmap_Speed]=kmeans(ZS2(:,sum(Speed_flow,1)>0),40,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
 [Model_OnsetSpeed,GoodBetas_OnsetSpeed]=Test_Regress(Cmap_Speed,NewFlow(:,sum(Speed_flow,1)>0),idxKmeans_Speed,Threshold);
 
-%Test Speed encoding
-Speed_flow=zeros(2,size(ZS2,2));
-back=    [56 256 557 1006 1106 1466 1827 2086]-5; %Infuse
-back_off=[106 356 706 1056 1206 1516 1926 2176];
-fwd=    [156 407 757 856 1256 1316 1526 1626 1986 2236]-5; %Withdraw
-fwd_off=[206 506 806 956 1306 1366 1576 1776 2036 2286];
-%back=back/5;back_off=back_off/5;
-%fwd=fwd/5;fwd_off=fwd_off/5;
-slow_fast=[1 2 3 2 1 2 2 1];
-slow_fast_fwd=[2 1 1 2 2 2 2 3 1 1];
-for i=1:length(back)
-    Speed_flow(1,back(i):back_off(i))=slow_fast(i);
-end
-for i=1:length(fwd)    
-    Speed_flow(2,fwd(i):fwd_off(i))=slow_fast_fwd(i);
-end
 
 
 %Test Acceleration encoding
@@ -881,6 +852,7 @@ for i=1:2
     Max_fwd_accel(i,:)=max(ZS2(:,Accel_times(2,i):Accel_times(2,i)+40),[],2);    
 end
 
+Threshold=0.4;
 Accel_encode_idx=find(Max_back_accel(1,:)<Max_back_accel(2,:));
 Decel_encode_idx=find(Max_back_accel(1,:)>Max_back_accel(2,:));
 [idxKmeans_AccelBack Cmap_AccelBack]=kmeans(ZS2(Accel_encode_idx,1:1000),10,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');Threshold=0.2;
@@ -927,3 +899,146 @@ for i=1:length(GoodBetas_DecelFwd)
     axes(ha(i));
     plot(Cmap_DecelFwd(GoodBetas_DecelFwd(i),:));hold on;plot(sum(Speed_flow(:,1200:end),1)/5);
 end
+
+Onset_encoders=[];Threshold=0.4;
+idx_speed=Decel_encode_idx(find(idxKmeans_DecelBack==GoodBetas_DecelBack));
+mean_temp=mean(ZS2((idx_speed),1:end),1);
+ZS_temp=ZS2((idx_speed),1:end);
+corr_temp=zeros(size(ZS_temp,1),1);
+parfor i=1:length(idx_speed)
+	temp=corrcoef(mean_temp, ZS_temp(i,:));
+	corr_temp(i)=temp(1,2);
+end
+Onset_encoders(1).idx=idx_speed(corr_temp>=Threshold);
+Onset_encoders(1).mean=mean(ZS2(Onset_encoders.idx,:),1);
+Onset_encoders(1).std=std(ZS2(Onset_encoders.idx,:),1,1);
+
+idx_speed=Decel_FWD_encode_idx(find(idxKmeans_DecelFwd==GoodBetas_DecelFwd));
+mean_temp=mean(ZS2((idx_speed),1:end),1);
+ZS_temp=ZS2((idx_speed),1:end);
+corr_temp=zeros(size(ZS_temp,1),1);
+parfor i=1:length(idx_speed)
+	temp=corrcoef(mean_temp, ZS_temp(i,:));
+	corr_temp(i)=temp(1,2);
+end
+Onset_encoders(2).idx=idx_speed(corr_temp>=Threshold);
+Onset_encoders(2).mean=mean(ZS2(Onset_encoders(2).idx,:),1);
+Onset_encoders(2).std=std(ZS2(Onset_encoders(2).idx,:),1,1);
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 800, 800]);
+idx_speed=Onset_encoders(1).idx;
+imagesc(ZS2(idx_speed(randperm(length(idx_speed))),1:end),[-2 5]);colormap hot;
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1500, 800]);
+temp=mean(ZS2((idx_speed),1:end),1);
+std_temp=std(ZS2((idx_speed),1:end),1,1);
+H=shadedErrorBar(x, temp, std_temp);axis([0 475 -2 6]);title(length(idx_speed));hold on;
+plot(x,(Speed_flow(1,:)/2)-2.01,'Color','m');hold on;
+plot(x,(Speed_flow(2,:)/2)-2.01,'Color','g');hold off;
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 800, 800]);
+idx_speed=Onset_encoders(2).idx;
+imagesc(ZS2(idx_speed(randperm(length(idx_speed))),1:end),[-2 5]);colormap hot;
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1500, 800]);
+temp=mean(ZS2((idx_speed),1:end),1);
+std_temp=std(ZS2((idx_speed),1:end),1,1);
+H=shadedErrorBar(x, temp, std_temp);axis([0 475 -2 6]);title(length(idx_speed));hold on;
+plot(x,(Speed_flow(1,:)/2)-2.01,'Color','m');hold on;
+plot(x,(Speed_flow(2,:)/2)-2.01,'Color','g');hold off;
+
+%Integrators
+
+coefficients={}; %%%to make the coefficients variable that we will use. Regression coefficients represent the mean change in the response variable for one unit of change in the predictor variable while holding other predictors in the model constant.
+for idx=1:length(model_predict)%%% to make a variable the size of ModelResults
+    coef=[model_predict(idx).coef];%%%% and then put in another variable the coef field from ModelResults
+    temp=coef.Properties.RowNames;temp=regexp(temp,'x(\d+)','tokens');%%%to take the name of the rows of the coef variable
+    if ~isempty(temp)%%% if temp is not empty...
+        %temp=[temp{:}];temp=[temp{:}];temp=[temp{:}];%temp=str2num(temp);
+        for coef_idx=2:height(coef)%%%take the number of rows from coef, except the first one(i think because is the intercept)
+            %if coef.pValue(coef_idx)<0.05%%%to select the coef that are bellow the p value we want, in this case 0.05
+                coefficients{idx,str2num(temp{coef_idx}{1}{1})}=coef.Estimate(coef_idx); %%%to make an array the size of idx,10 with the coefficient values that were significant
+            %end
+        end
+    end
+end
+idxempty=cellfun('isempty',coefficients); %%%to make a variable with where we will aply in every cell the isempty function wich will help us find the empty places
+coefficients(idxempty)={0}; %%% and put a 0 in the places where we found that there were empty cells
+clearvars idxempty idx coef_idx coef  %%%clear variables
+coefficients=cell2mat(coefficients); %%%to make a matrix of the coefficients array
+mean_coef=mean(coefficients,1);
+std_coef=std(coefficients,1,1);
+
+
+coef_rsq=coefficients(idx_rsq_all,:);
+Coef_clust=zeros(8,size(ZS2,2));
+Coef_ClustData=struct();
+for i=1:8
+    Coef_clust(i,:)=mean(ZS2(coefficients(:,i)>(mean_coef(i)+2*std_coef(i)),:),1);
+    Coef_ClustData(i).idx=find(coefficients(:,i)>(mean_coef(i)+2*std_coef(i)));
+end
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1300, 900]);
+counter=1;xplot=4;yplot=4;
+ha=tight_subplot(yplot,xplot);
+for i=1:8
+    idx_temp=Coef_ClustData(i).idx;
+    axes(ha(counter));
+    temp=mean(ZS2((idx_temp),:),1);
+    std_temp=std(ZS2((idx_temp),:),1,1);    
+    idx_speed=find(sum(Speed_flow,1)>0);
+    axes(ha(counter));
+    H=shadedErrorBar(x, temp, std_temp);axis([0 300 -2 5]);title(num2str((i)));hold on;
+    plot(x,Speed_flow(1,:),'Color','m');hold on;
+    plot(x,Speed_flow(2,:),'Color','g');hold off;
+    axes(ha(counter+1));
+    imagesc(ZS2((idx_temp),:),[-2 5]);colormap hot;
+    counter=counter+2;
+end
+
+%bidirectionnal Onset
+figure;
+plot(BasicClustData(1).Cmap(BasicClustData(1).GoodBetas(5),:)');
+hold on;i=17;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+hold on; i=13;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on;i=6;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+hold on;i=11;idx_temp=find(idxKmeans_predict==GoodBetas_predict_select(i));plot(mean(ZS2(idx_rsq_predict(idx_temp),:),1));
+
+%bidirectionnal ON
+figure;
+plot(BasicClustData(1).Cmap(BasicClustData(1).GoodBetas(6),:)');hold on;plot(BasicClustData(2).Cmap(BasicClustData(2).GoodBetas(5),:)');
+
+%FWD Onset
+figure;
+plot(BasicClustData(3).Cmap(BasicClustData(3).GoodBetas(4),:)');hold on; i=2;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on; i=9;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on;i=1;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+
+%FWD ON
+figure;
+plot(BasicClustData(4).Cmap(BasicClustData(4).GoodBetas(5),:)');hold on;
+
+%BWD Onset
+figure;
+plot(BasicClustData(6).Cmap(BasicClustData(6).GoodBetas(1),:)');hold on;
+i=14;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+hold on; i=10;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on;i=6;;idx_temp=find(idxKmeans_predict==GoodBetas_predict_select(i));plot(mean(ZS2(idx_rsq_predict(idx_temp),:),1));
+
+%BWD ON
+figure;
+plot(BasicClustData(7).Cmap(BasicClustData(7).GoodBetas(2),:)');hold on;
+
+%BWD integrator
+figure;
+i=16;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+hold on; i=12;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on;i=7;idx_temp=find(idxKmeans_predict==GoodBetas_predict_select(i));plot(mean(ZS2(idx_rsq_predict(idx_temp),:),1));
+hold on;
+    plot(Speed_flow(1,:),'Color','m');hold on;
+    plot(Speed_flow(2,:),'Color','g');hold off;
