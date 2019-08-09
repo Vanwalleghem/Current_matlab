@@ -829,17 +829,34 @@ coefficients(idxempty)={0};
 clearvars idxempty idx coef_idx coef temp
 coefficients=cell2mat(coefficients);
 
-CSV_Files=dir('_2WarpedLong*.csv');
+% CSV_Files=dir('_2WarpedLong*.csv');
+% ROIs=struct();
+% for i=1:length(CSV_Files);
+%     temp=csvread(CSV_Files(i).name,0);   
+%     Fishname=regexp(CSV_Files(i).name,'_2WarpedLong(\d+).csv','tokens');Fishname=Fishname{1}{1};    
+%     ROIs(i).name=Fishname;    
+%     ROIs(i).coord=temp(:,1:3);
+%     ROIs(i).idx=temp(:,5);
+%     size(temp,1)==sum(idx_Fish==str2num(Fishname))
+% end
+% clearvars i temp CSV_Files Fishname
+
+CSV_Files=dir('_3Warped*.csv');
 ROIs=struct();
 for i=1:length(CSV_Files);
-    temp=csvread(CSV_Files(i).name,0);   
-    Fishname=regexp(CSV_Files(i).name,'_2WarpedLong(\d+).csv','tokens');Fishname=Fishname{1}{1};    
+    temp=csvread(CSV_Files(i).name,1);   
+    Fishname=regexp(CSV_Files(i).name,'_3Warped(\d+).csv','tokens');Fishname=Fishname{1}{1};    
     ROIs(i).name=Fishname;    
     ROIs(i).coord=temp(:,1:3);
     ROIs(i).idx=temp(:,5);
     size(temp,1)==sum(idx_Fish==str2num(Fishname))
 end
 clearvars i temp CSV_Files Fishname
+
+temp=csvread('_4Warped13.csv',1);
+i=3;ROIs(i).name;
+ROIs(i).coord=temp(:,1:3);
+ROIs(i).idx=temp(:,5);
 
 i=1;ROI_pool=ROIs(i).coord;
 for i=2:length(ROIs);
@@ -1036,6 +1053,10 @@ for i=1:length(RegionList)
         clearvars Hindbrain_Mask IsInEyes_temp;
 	elseif strcmp(regionName,'pLLG')
         Mask=Zbrain_Masks{90,3};
+        Mask=vertcat(Mask,Zbrain_Masks{93,3});    
+    elseif strcmp(regionName,'pLLG')
+        Mask=Zbrain_Masks{90,3};
+        Mask=vertcat(Mask,Zbrain_Masks{93,3});  
     else
         Mask=[];
         IndexC=strfind({Zbrain_Masks{:,2}}, regionName);
@@ -1113,9 +1134,12 @@ for i=1:length(GoodBetas_select)
     CSV_temp=ROI_rotated(idx_temp,:);
     CSV_temp(:,3)=CSV_temp(:,3);
     CSV_temp(:,4)=1;
-    filename=strcat('__Coords_clust_Basic',num2str(i),'b.csv');
-    csvwrite(filename,CSV_temp);
+    idx_brain=ismember(CSV_temp(:,1:3),Zbrain_AllMask,'rows');
+    idx_brain=find(idx_brain>0);
+    filename=strcat('__Coords_clust_Basic',num2str(i),'_inBrain.csv');
+    csvwrite(filename,CSV_temp(idx_brain,:));
 end
+
 
 CSV_temp=ROI_rotated;
 CSV_temp(:,4)=1;
@@ -1145,19 +1169,28 @@ RegionList_select2={'Thalamus','Cereb','TS','Telencephalon','OT','Tegmentum','Ha
 for i=1:length(GoodBetas_select)
     idx_temp=GoodClusters_goodmembers(i).idx;
     Fighandle=figure;set(Fighandle, 'Position', [0, 0, 1000, 500]);
-    h=histogram(idx_PerBrainRegions(idx_temp),'Normalization','probability');
+    h=histogram(idx_PerBrainRegions(idx_temp),'Normalization','probability');ylim([0 0.45]);
     h.FaceColor = colors(i,:)/256;
     h.EdgeColor = 'k';
-    set(gca,'XTickLabel',RegionList_select2);set(gca,'XTick',[1:1:length(RegionList_select)]);set(gca,'XTickLabelRotation',-90)
-    set(gca,'YTick',[0.1:0.1:0.5]);set(gca,'YTickLabel',[10:10:50]);ylim([0 45]);
-    box off
-    ax1 = gca;
-    ax2 = axes('Position', get(ax1, 'Position'), 'FontSize', 10,...
-        'Color','None','XColor','k','YColor','k', 'LineWidth', 1,...
-        'XAxisLocation','top', 'XTick', [],...
-        'YAxisLocation','right', 'YTick', []);
-    linkaxes([ax1, ax2]);
-    print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\BrainDistrib_clusters',num2str(i),'.png'),'-dpng','-r0');
+    %     set(gca,'XTickLabel',RegionList_select2);set(gca,'XTick',[1:1:length(RegionList_select)]);set(gca,'XTickLabelRotation',-90)
+    %     set(gca,'YTick',[0.1:0.1:0.5]);set(gca,'YTickLabel',[10:10:50]);ylim([0 0.5]);
+    %     box off
+    %      ax1 = gca;
+    %      ax2 = axes('Position', get(ax1, 'Position'), 'FontSize', 10,...
+    %          'Color','None','XColor','k','YColor','k', 'LineWidth', 1,...
+    %          'XAxisLocation','top', 'XTick', [],...
+    %          'YAxisLocation','right', 'YTick', []);
+    %      linkaxes([ax1, ax2]);
+    % print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\BrainDistrib_clusters',num2str(i),'.png'),'-dpng','-r0');
+    set(gca,'YTickLabel',[]);set(gca,'XTickLabel',[]);set(gca,'YTick',[]);set(gca,'XTick',[]);
+    ax = gca;
+    outerpos = ax.OuterPosition;
+    ti = ax.TightInset;
+    left = outerpos(1) + ti(1);
+    bottom = outerpos(2) + ti(2);
+    ax_width = outerpos(3) - ti(1) - ti(3);
+    ax_height = outerpos(4) - ti(2) - ti(4);
+    ax.Position = [left bottom ax_width ax_height];
     print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\BrainDistrib_clusters',num2str(i),'.svg'),'-dsvg','-r0');
     close;
 end
@@ -1190,15 +1223,6 @@ for i=1:length(RegionList_select)
     print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\ClustersDistrib_',regionName,'.png'),'-dpng','-r0');
     close;
 end
-
-
-CSV_temp=ROI_rotated(idx_PerBrainRegions==0,:);
-CSV_temp(:,4)=1;
-csvwrite('__All_fish.csv',CSV_temp);
-
-CSV_temp=ROI_rotated(idx_PerBrainRegions>0,:);
-CSV_temp(:,4)=1;
-csvwrite('__All_fishb.csv',CSV_temp);
 
 edges=[0:10:200];
 figure;histogram(ROI_rotated(idx_PerBrainRegions>0,3),edges,'Normalization','probability');hold on;histogram(ROI_rotated(idx_PerBrainRegions==0,3),edges,'Normalization','probability');

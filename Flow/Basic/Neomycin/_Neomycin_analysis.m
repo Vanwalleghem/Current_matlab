@@ -161,63 +161,156 @@ for i=GoodBetas_select
 end
 print(Fighandle,'D:\Pictures\processed\Flow\Basic\Neomycin\FullLength_Neo_clusters.svg','-dsvg','-r0');    
 
-%--------------------------------
-load('__BasicFlow_final_lite.mat')
-Neo=load('__BasicFlow_Neo.mat')
+
+
+
+back=[57 257 457];
+fwd=[157 357 557];
+PrismBackTemp=nan(length(GoodBetas_select),length(unique(idx_Fish)));counter=1;
+PrismFWDTemp=nan(length(GoodBetas_select),length(unique(idx_Fish)));counter=1;
+for i=GoodBetas_select
+    idx_temp=find(idxKmeans_ZS_goodmembers==i);
+    for fish_nb=1:3
+        idx_fish_temp=idx_Fish(idx_temp)==fish_nb;
+        ZS_temp=mean(ZS2(idx_temp(idx_fish_temp),:),1);
+        sum(idx_fish_temp)
+        max_resp=zeros(2,3);        
+        for rep=2:3
+        max_resp(1,rep)=max(ZS_temp(:,back(rep):back(rep)+20),[],2)-min(ZS_temp(:,back(rep)-5:back(rep)+20),[],2);
+        max_resp(2,rep)=max(ZS_temp(:,fwd(rep):fwd(rep)+20),[],2)-min(ZS_temp(:,fwd(rep)-5:fwd(rep)+20),[],2);
+        end        
+        PrismBackTemp(counter,fish_nb)=round(mean(max_resp(1,:)),3);
+        PrismFWDTemp(counter,fish_nb)=round(mean(max_resp(2,:)),3);
+    end    
+    counter=counter+1;
+end
+
+back=[57 257 457];
+fwd=[157 357 557];
+FishList=unique(basic_idx_Fish.idx_Fish);
+PrismBackTemp=nan(length(GoodBetas_select),length(unique(basic_idx_Fish.idx_Fish)));counter=1;
+PrismFWDTemp=nan(length(GoodBetas_select),length(unique(basic_idx_Fish.idx_Fish)));counter=1;
+for i=[4 7]
+    idx_temp=basic_data.GoodClusters_goodmembers(i).idx;
+    for fish_nb=1:length(FishList)
+        idx_fish_temp=basic_idx_Fish.idx_Fish(idx_temp)==FishList(fish_nb);
+        ZS_temp=basic_data.GoodClusters_goodmembers(i).ZS;
+        ZS_temp=mean(ZS_temp(idx_fish_temp,:),1);
+        max_resp=zeros(2,3);        
+        for rep=2:3
+        max_resp(1,rep)=max(ZS_temp(:,back(rep):back(rep)+20),[],2)-min(ZS_temp(:,back(rep)-5:back(rep)+20),[],2);
+        max_resp(2,rep)=max(ZS_temp(:,fwd(rep):fwd(rep)+20),[],2)-min(ZS_temp(:,fwd(rep)-5:fwd(rep)+20),[],2);
+        end        
+        PrismBackTemp(counter,fish_nb)=round(mean(max_resp(1,:)),3);
+        PrismFWDTemp(counter,fish_nb)=round(mean(max_resp(2,:)),3);
+    end    
+    counter=counter+1;
+end
+
+%histogram of strength of response
+counter=1;
+mean_resp_strength={};
+for i=GoodBetas_select
+    idx_temp=find(idxKmeans_ZS_goodmembers==i);
+    ZS_temp=ZS2(idx_temp,:);
+    max_resp=zeros(size(ZS_temp,1),3,2);
+    for rep=2:3
+        max_resp(:,rep,1)=max(ZS_temp(:,back(rep):back(rep)+20),[],2)-min(ZS_temp(:,back(rep)-5:back(rep)+20),[],2);
+        max_resp(:,rep,2)=max(ZS_temp(:,fwd(rep):fwd(rep)+20),[],2)-min(ZS_temp(:,fwd(rep)-5:fwd(rep)+20),[],2);
+    end
+    mean_resp_strength{counter,1}=squeeze(mean(max_resp(:,:,1),2));
+    mean_resp_strength{counter,2}=squeeze(mean(max_resp(:,:,2),2));
+    counter=counter+1;
+end
+
+counter=1;
+mean_resp_strength_basic={};
+for i=[4 7]    
+    ZS_temp=basic_data.GoodClusters_goodmembers(i).ZS;
+    max_resp=zeros(size(ZS_temp,1),3,2);
+    for rep=2:3
+        max_resp(:,rep,1)=max(ZS_temp(:,back(rep):back(rep)+20),[],2)-min(ZS_temp(:,back(rep)-5:back(rep)+20),[],2);
+        max_resp(:,rep,2)=max(ZS_temp(:,fwd(rep):fwd(rep)+20),[],2)-min(ZS_temp(:,fwd(rep)-5:fwd(rep)+20),[],2);
+    end
+    mean_resp_strength_basic{counter,1}=squeeze(mean(max_resp(:,:,1),2));
+    mean_resp_strength_basic{counter,2}=squeeze(mean(max_resp(:,:,2),2));
+    counter=counter+1;
+end
 
 %Make figure of full length + STD + rasterhisto
+edges=[0:0.4:6];
 Fighandle=figure;
-set(Fighandle, 'Position', [100, 100, 1200, 1200]);
+set(Fighandle, 'Position', [100, 100, 1200, 600]);
 set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
-counter=1;counter2=1;xplot=4;yplot=2;
+counter=1;counter2=1;xplot=2;yplot=2;
 StimLength=655;
 x = linspace(0.2,StimLength/5,StimLength);
 ha = tight_subplot(xplot,yplot,[.01 .01],[.01 .01],[.01 .01]);
-for i=[5 7]   
-    temp=GoodClusters_goodmembers(i).mean;
-    std_temp=GoodClusters_goodmembers(i).STD;        
-    %subplot(xplot,yplot,(2*counter)-1);
-    axes(ha((2*counter)-1));
-    H=shadedErrorBar(x, temp, std_temp);axis([0 130 -1 4]);
-    H.mainLine.Color=colors(i,:)/256;
-    H.patch.FaceColor=colors(i,:)/256;
-    H.edge(1).Color=colors(i,:)/256;
-    H.edge(2).Color=colors(i,:)/256;
-    H.mainLine.LineWidth=3;    
-    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);%title(size(GoodClusters_goodmembers(i).ZS,1));
-    %subplot(xplot,yplot,(2*counter));
-    axes(ha((2*counter)));
-    imagesc(GoodClusters_goodmembers(i).ZS(randperm(size(GoodClusters_goodmembers(i).ZS,1)),:),[-1 3]);colormap hot
-    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);    
-    counter=counter+1;
-    temp=Neo.GoodClusters_goodmembers(counter2).mean;
-    std_temp=Neo.GoodClusters_goodmembers(counter2).STD;        
-    %subplot(xplot,yplot,(2*counter)-1);
-    axes(ha((2*counter)-1));
-    H=shadedErrorBar(x, temp, std_temp);axis([0 130 -1 4]);
-    H.mainLine.Color=colors(counter,:)/256;
-    H.patch.FaceColor=colors(counter,:)/256;
-    H.edge(1).Color=colors(counter,:)/256;
-    H.edge(2).Color=colors(counter,:)/256;
-    H.mainLine.LineWidth=3;    %title(size(Neo.GoodClusters_goodmembers(counter2).ZS,1));
-    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);  
-    %subplot(xplot,yplot,(2*counter));
-    axes(ha((2*counter)));
-    imagesc(Neo.GoodClusters_goodmembers(counter2).ZS(randperm(size(Neo.GoodClusters_goodmembers(counter2).ZS,1)),:),[-1 3]);colormap hot
-    set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);    
-    counter=counter+1;
-    counter2=counter2+1;
-end
-print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullLength_neoAndbasic_clusters.svg'),'-dsvg','-r0');    
+axes(ha(1));
+histogram(mean_resp_strength{1,1},edges,'Normalization','probability');hold on;histogram(mean_resp_strength_basic{1,1},edges,'Normalization','probability');ylim([0 0.4]);set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+axes(ha(2));histogram(mean_resp_strength{1,2},edges,'Normalization','probability');hold on;histogram(mean_resp_strength_basic{1,2},edges,'Normalization','probability');ylim([0 0.4]);set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+axes(ha(3));histogram(mean_resp_strength{2,1},edges,'Normalization','probability');hold on;histogram(mean_resp_strength_basic{2,1},edges,'Normalization','probability');ylim([0 0.4]);set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+axes(ha(4));histogram(mean_resp_strength{2,2},edges,'Normalization','probability');hold on;histogram(mean_resp_strength_basic{2,2},edges,'Normalization','probability');ylim([0 0.4]);set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);
+print(Fighandle,'D:\Pictures\processed\Flow\Basic\Neomycin\StrengthHistogram.svg','-dsvg','-r0');    
 
 
-
-%Make figure of full length + STD + rasterhisto
-counter=1;counter2=1;
-for i=[5 7]   
-    size(GoodClusters_goodmembers(i).ZS,1)/length(unique(GoodClusters_goodmembers(i).Fish))
-    idx_temp=Neo.GoodClusters_goodmembers(counter2).idx;
-    size(Neo.GoodClusters_goodmembers(counter2).ZS,1)/length(unique(Neo.idx_Fish(idx_temp)))
-    counter2=counter2+1;
-end
+% %--------------------------------
+% load('__BasicFlow_final_lite.mat')
+% Neo=load('__BasicFlow_Neo.mat')
+% 
+% %Make figure of full length + STD + rasterhisto
+% Fighandle=figure;
+% set(Fighandle, 'Position', [100, 100, 1200, 1200]);
+% set(findall(Fighandle,'type','text'),'fontSize',12,'fontWeight','bold','FontName','Arial')
+% counter=1;counter2=1;xplot=4;yplot=2;
+% StimLength=655;
+% x = linspace(0.2,StimLength/5,StimLength);
+% ha = tight_subplot(xplot,yplot,[.01 .01],[.01 .01],[.01 .01]);
+% for i=[5 7]   
+%     temp=GoodClusters_goodmembers(i).mean;
+%     std_temp=GoodClusters_goodmembers(i).STD;        
+%     %subplot(xplot,yplot,(2*counter)-1);
+%     axes(ha((2*counter)-1));
+%     H=shadedErrorBar(x, temp, std_temp);axis([0 130 -1 4]);
+%     H.mainLine.Color=colors(i,:)/256;
+%     H.patch.FaceColor=colors(i,:)/256;
+%     H.edge(1).Color=colors(i,:)/256;
+%     H.edge(2).Color=colors(i,:)/256;
+%     H.mainLine.LineWidth=3;    
+%     set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);%title(size(GoodClusters_goodmembers(i).ZS,1));
+%     %subplot(xplot,yplot,(2*counter));
+%     axes(ha((2*counter)));
+%     imagesc(GoodClusters_goodmembers(i).ZS(randperm(size(GoodClusters_goodmembers(i).ZS,1)),:),[-1 3]);colormap hot
+%     set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);    
+%     counter=counter+1;
+%     temp=Neo.GoodClusters_goodmembers(counter2).mean;
+%     std_temp=Neo.GoodClusters_goodmembers(counter2).STD;        
+%     %subplot(xplot,yplot,(2*counter)-1);
+%     axes(ha((2*counter)-1));
+%     H=shadedErrorBar(x, temp, std_temp);axis([0 130 -1 4]);
+%     H.mainLine.Color=colors(counter,:)/256;
+%     H.patch.FaceColor=colors(counter,:)/256;
+%     H.edge(1).Color=colors(counter,:)/256;
+%     H.edge(2).Color=colors(counter,:)/256;
+%     H.mainLine.LineWidth=3;    %title(size(Neo.GoodClusters_goodmembers(counter2).ZS,1));
+%     set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);  
+%     %subplot(xplot,yplot,(2*counter));
+%     axes(ha((2*counter)));
+%     imagesc(Neo.GoodClusters_goodmembers(counter2).ZS(randperm(size(Neo.GoodClusters_goodmembers(counter2).ZS,1)),:),[-1 3]);colormap hot
+%     set(gca,'XTickLabel',[]);set(gca,'YTickLabel',[]);    
+%     counter=counter+1;
+%     counter2=counter2+1;
+% end
+% print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullLength_neoAndbasic_clusters.svg'),'-dsvg','-r0');    
+% 
+% 
+% 
+% %Make figure of full length + STD + rasterhisto
+% counter=1;counter2=1;
+% for i=[5 7]   
+%     size(GoodClusters_goodmembers(i).ZS,1)/length(unique(GoodClusters_goodmembers(i).Fish))
+%     idx_temp=Neo.GoodClusters_goodmembers(counter2).idx;
+%     size(Neo.GoodClusters_goodmembers(counter2).ZS,1)/length(unique(Neo.idx_Fish(idx_temp)))
+%     counter2=counter2+1;
+% end
 
