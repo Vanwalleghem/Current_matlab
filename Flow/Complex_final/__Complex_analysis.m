@@ -190,6 +190,14 @@ end
 
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1300, 900]);
+i=1;ZS_basic_stack=BasicClustData(i).ZS;
+for i=2:max(MaxCorr_BasiClust_ind)    
+    ZS_basic_stack=[ZS_basic_stack; BasicClustData(i).ZS];    
+end
+imagesc(ZS_basic_stack,[-0.5 5]);colormap hot;
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1300, 900]);
 counter=1;xplot=floor(sqrt(max(MaxCorr_BasiClust_ind)));yplot=ceil(max(MaxCorr_BasiClust_ind)/xplot);
 for i=1:max(MaxCorr_BasiClust_ind)    
     subplot(xplot,yplot,counter);imagesc(BasicClustData(i).ZS);xlim([0 500]); %hold on;plot(x,(double(Flow_profile2)/10)-1)
@@ -489,7 +497,7 @@ plot(x,Speed_flow(2,:),'Color','g');hold off;
 axes(ha(counter+1));
 imagesc(ZS2((idx_speed),1:end),[-2 5]);colormap hot;
 
-%Alternative look for speed encoding
+%% Alternative look for speed encoding
 slow_fast=[1 2 3 2 1 2 2 1];
 slow_fast_fwd=[2 1 1 2 2 2 2 3 1 1];
 Fast_speed_idx=slow_fast==2;
@@ -636,8 +644,8 @@ parfor i=1:length(idx_speed)
 	corr_temp(i)=temp(1,2);
 end
 Speed_encoders(1).idx=idx_speed(corr_temp>=Threshold);
-Speed_encoders(1).mean=mean(ZS2(Speed_encoders.idx,:),1);
-Speed_encoders(1).std=std(ZS2(Speed_encoders.idx,:),1,1);
+Speed_encoders(1).mean=mean(ZS2(Speed_encoders(1).idx,:),1);
+Speed_encoders(1).std=std(ZS2(Speed_encoders(1).idx,:),1,1);
 
 idx_speed=Slow_Speed_encode_idx(find(idxKmeans_SlowBack==GoodBetas_SlowBack));
 mean_temp=mean(ZS2((idx_speed),1:end),1);
@@ -648,8 +656,8 @@ parfor i=1:length(idx_speed)
 	corr_temp(i)=temp(1,2);
 end
 Speed_encoders(2).idx=idx_speed(corr_temp>=Threshold);
-Speed_encoders(2).mean=mean(ZS2(Speed_encoders.idx,:),1);
-Speed_encoders(2).std=std(ZS2(Speed_encoders.idx,:),1,1);
+Speed_encoders(2).mean=mean(ZS2(Speed_encoders(2).idx,:),1);
+Speed_encoders(2).std=std(ZS2(Speed_encoders(2).idx,:),1,1);
 
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 800, 800]);
@@ -691,6 +699,132 @@ for i=1:length(fwd)
 end
 Max_flow_speed=Max_flow_speed';
 
+idx_speed=Speed_encoders(2).idx;
+counter=1;
+Max_flow_speed=zeros(length(back)+length(fwd),length(idx_speed));
+for i=1:length(back)
+    temp=ZS2(idx_speed,back(i):back_off(i));
+    temp=sort(temp,2,'descend');
+    Max_flow_speed(counter,:)=mean(temp(:,2:4),2);    
+    counter=counter+1;
+end
+for i=1:length(fwd)    
+    temp=ZS2(idx_speed,fwd(i):fwd_off(i));
+    temp=sort(temp,2,'descend');
+    Max_flow_speed(counter,:)=mean(temp(:,2:4),2);  
+    %Max_flow_speed(counter,:)=max(ZS2(idx_speed,fwd(i):fwd_off(i)),[],2);    
+    counter=counter+1;
+end
+Max_flow_speed=Max_flow_speed';
+figure;bar(mean(Max_flow_speed,1))
+
+
+
+
+Fwd_fast=Max_flow_speed(:,[2 4 6 7]);Fwd_fast=Fwd_fast(:);
+Fwd_slow=Max_flow_speed(:,[1 5 8]);Fwd_slow=Fwd_slow(:);
+Rev_fast=Max_flow_speed(:,[1 4 5 7]+8);Rev_fast=Rev_fast(:);
+Rev_slow=Max_flow_speed(:,[2 3 9 10]+8);Rev_slow=Rev_slow(:);
+
+%% Speed encoding figure
+
+idx_temp=Speed_encoders(2).idx;
+ZS_temp=ZS2(idx_temp,:);
+fish_temp=unique(idx_Fish(idx_temp));
+idx_time_temp=[2 4 6 7];
+ToPlot_slow=nan(length(idx_time_temp),length(unique(idx_Fish)),61,4);
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        ToPlot_slow(i,fish_nb,:,1)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),back(idx_time_temp(i)):back(idx_time_temp(i))+60));
+    end
+end
+idx_time_temp=[1 5 8];
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        ToPlot_slow(i,fish_nb,:,2)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),back(idx_time_temp(i)):back(idx_time_temp(i))+60));
+    end
+end
+idx_temp=Speed_encoders(2).idx;
+ZS_temp=ZS2(idx_temp,:);
+fish_temp=unique(idx_Fish(idx_temp));
+idx_time_temp=[1 4 5 7];
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        ToPlot_slow(i,fish_nb,:,3)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),fwd(idx_time_temp(i)):fwd(idx_time_temp(i))+60));
+    end
+end
+idx_time_temp=[2 3 9 10];
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        ToPlot_slow(i,fish_nb,:,4)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),fwd(idx_time_temp(i)):fwd(idx_time_temp(i))+60));
+    end
+end
+
+idx_temp=Speed_encoders(1).idx;
+ZS_temp=ZS2(idx_temp,:);
+fish_temp=unique(idx_Fish(idx_temp));
+idx_time_temp=[2 4 6 7];
+ToPlot_fast=nan(length(idx_time_temp),length(unique(idx_Fish)),61,4);
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        if sum(idx_Fish(idx_temp)==fish_temp(fish_nb))>5
+            ToPlot_fast(i,fish_nb,:,1)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),back(idx_time_temp(i)):back(idx_time_temp(i))+60));
+        end
+    end
+end
+idx_time_temp=[1 5 8];
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        if sum(idx_Fish(idx_temp)==fish_temp(fish_nb))>5
+            ToPlot_fast(i,fish_nb,:,2)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),back(idx_time_temp(i)):back(idx_time_temp(i))+60));
+        end
+    end
+end
+idx_temp=Speed_encoders(1).idx;
+ZS_temp=ZS2(idx_temp,:);
+fish_temp=unique(idx_Fish(idx_temp));
+idx_time_temp=[1 4 5 7];
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        if sum(idx_Fish(idx_temp)==fish_temp(fish_nb))>5
+            ToPlot_fast(i,fish_nb,:,3)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),fwd(idx_time_temp(i)):fwd(idx_time_temp(i))+60));
+        end
+    end
+end
+idx_time_temp=[2 3 9 10];
+for i=1:length(idx_time_temp)
+    for fish_nb=1:length(fish_temp)
+        if sum(idx_Fish(idx_temp)==fish_temp(fish_nb))>5
+            ToPlot_fast(i,fish_nb,:,4)=mean(ZS_temp(idx_Fish(idx_temp)==fish_temp(fish_nb),fwd(idx_time_temp(i)):fwd(idx_time_temp(i))+60));
+        end
+    end
+end
+
+Fighandle=figure;
+set(Fighandle, 'Position', [10, 10, 800, 400]);
+ha = tight_subplot(1,2,[.01 .01],[.01 .01],[.01 .01]);
+axes(ha(2));
+ToPlot_temp2=squeeze(nanmean(ToPlot_fast,1));
+ToPlot_temp2=squeeze(nanmean(ToPlot_temp2,1));
+plot(ToPlot_temp2(:,1)-min(ToPlot_temp2(:,1)),'r','LineWidth',3);ylim([-0.1 3]);hold on;
+ToPlot_temp2=squeeze(nanmean(ToPlot_slow,1));
+ToPlot_temp2=squeeze(nanmean(ToPlot_temp2,1));
+plot(ToPlot_temp2(:,1)-min(ToPlot_temp2(:,1)),'b','LineWidth',3);ylim([-0.1 3]);hold off;
+%set(gca,'visible','off');
+set(gca,'xtick',[]);set(gca,'ytick',[]);
+axes(ha(1));
+ToPlot_temp2=squeeze(nanmean(ToPlot_fast,1));
+ToPlot_temp2=squeeze(nanmean(ToPlot_temp2,1));
+plot(ToPlot_temp2(:,2)-min(ToPlot_temp2(:,2)),'r','LineWidth',3);ylim([-0.1 3]);hold on;
+ToPlot_temp2=squeeze(nanmean(ToPlot_slow,1));
+ToPlot_temp2=squeeze(nanmean(ToPlot_temp2,1));
+plot(ToPlot_temp2(:,2)-min(ToPlot_temp2(:,2)),'b','LineWidth',3);ylim([-0.1 3]);hold off;
+%set(gca,'visible','off');
+set(gca,'xtick',[]);set(gca,'ytick',[]);
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Complex_final\Figure\SpeedEncoding_complex.svg'),'-dsvg','-r0');
+
+
+%% ROI for speed encoding
 %idx_Fish and ROIs
 %idx_Fish and ROIs
 Numbers=[0 [MatFiles.GoodNumber]];
@@ -804,17 +938,29 @@ for fish_nb=1:length(Fish_list)
 end
 clearvars i j k ROI Centroids M I I_row I_col test temp image_name filename fish fish_nb
 
+list_ROIs=dir('_ROIsFish_*.csv');
+for i=1:length(list_ROIs)
+    temp=csvread(list_ROIs(i).name,1);
+    temp(:,3)=abs(temp(:,3)-max(temp(:,3))-1);
+    if min(temp(:,3))==0
+        temp(:,3)=temp(:,3)+1;
+    end
+    csvwrite(strrep(list_ROIs(i).name,'.csv','_rev.csv'),temp);
+end
+
 idx_speed=Speed_encoders(1).idx;
-ROI_speed=ROI_rotated(idx_speed,:);
+ROI_speed=ROI_rotated(intersect(idx_NotF9orF7,idx_speed),:);
+IsInBrainRegion=ismember(round(ROI_speed),Zbrain_AllMask,'rows');
 ROI_speed(:,4)=1;
-csvwrite('Speed_encoding_ROIs.csv',ROI_speed);
+csvwrite('Speed_encoding_ROIs.csv',ROI_speed(IsInBrainRegion,:));
 
 idx_speed=Speed_encoders(2).idx;
-ROI_speed=ROI_rotated(idx_speed,:);
+ROI_speed=ROI_rotated(intersect(idx_NotF9orF7,idx_speed),:);
+IsInBrainRegion=ismember(round(ROI_speed),Zbrain_AllMask,'rows');
 ROI_speed(:,4)=1;
-csvwrite('Slow_encoding_ROIs.csv',ROI_speed);
+csvwrite('Slow_encoding_ROIs.csv',ROI_speed(IsInBrainRegion,:));
 
-%Onset encodes change of speed
+%% Onset encodes change of speed
 [idxKmeans_Speed Cmap_Speed]=kmeans(ZS2(:,sum(Speed_flow,1)>0),40,'Options',options,'Distance','cityblock','Replicates',3,'MaxIter',1000,'Display','final');
 [Model_OnsetSpeed,GoodBetas_OnsetSpeed]=Test_Regress(Cmap_Speed,NewFlow(:,sum(Speed_flow,1)>0),idxKmeans_Speed,Threshold);
 
@@ -846,8 +992,8 @@ Accel_times(2,2)=temp(find(Speed_flow(2,temp)==2,1));
 Max_back_accel=zeros(2,size(ZS2,1));
 Max_fwd_accel=zeros(2,size(ZS2,1));
 for i=1:2
-    Max_back_accel(i,:)=max(ZS2(:,Accel_times(1,i):Accel_times(1,i)+40),[],2);    
-    Max_fwd_accel(i,:)=max(ZS2(:,Accel_times(2,i):Accel_times(2,i)+40),[],2);    
+    Max_back_accel(i,:)=max(ZS2(:,Accel_times(1,i)+5:Accel_times(1,i)+30),[],2);    
+    Max_fwd_accel(i,:)=max(ZS2(:,Accel_times(2,i)+5:Accel_times(2,i)+30),[],2);    
 end
 
 Threshold=0.4;
@@ -907,7 +1053,7 @@ for i=1:length(GoodBetas_DecelFwd)
 end
 
 Onset_encoders=[];Threshold=0.4;
-idx_speed=Decel_encode_idx(find(idxKmeans_DecelBack==GoodBetas_DecelBack));
+idx_speed=Decel_encode_idx(find(idxKmeans_DecelBack==GoodBetas_DecelBack(3)));
 mean_temp=mean(ZS2((idx_speed),1:end),1);
 ZS_temp=ZS2((idx_speed),1:end);
 corr_temp=zeros(size(ZS_temp,1),1);
@@ -919,7 +1065,7 @@ Onset_encoders(1).idx=idx_speed(corr_temp>=Threshold);
 Onset_encoders(1).mean=mean(ZS2(Onset_encoders.idx,:),1);
 Onset_encoders(1).std=std(ZS2(Onset_encoders.idx,:),1,1);
 
-idx_speed=Decel_FWD_encode_idx(find(idxKmeans_DecelFwd==GoodBetas_DecelFwd));
+idx_speed=Decel_FWD_encode_idx(find(idxKmeans_DecelFwd==GoodBetas_DecelFwd(2)));
 mean_temp=mean(ZS2((idx_speed),1:end),1);
 ZS_temp=ZS2((idx_speed),1:end);
 corr_temp=zeros(size(ZS_temp,1),1);
@@ -953,11 +1099,23 @@ Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1500, 800]);
 temp=mean(ZS2((idx_speed),1:end),1);
 std_temp=std(ZS2((idx_speed),1:end),1,1);
-H=shadedErrorBar(x, temp, std_temp);axis([0 475 -2 6]);title(length(idx_speed));hold on;
+H=shadedErrorBar(x, temp, std_temp);axis([0 475 -2 6]);hold on;%title(length(idx_speed));
 plot(x,(Speed_flow(1,:)/2)-2.01,'Color','m');hold on;
 plot(x,(Speed_flow(2,:)/2)-2.01,'Color','g');hold off;
 
-%Integrators
+idx_speed=Onset_encoders(1).idx;
+ROI_speed=ROI_rotated(intersect(idx_NotF9orF7,idx_speed),:);
+IsInBrainRegion=ismember(round(ROI_speed),Zbrain_AllMask,'rows');
+ROI_speed(:,4)=1;
+csvwrite('FWDonset_encoding_ROIs.csv',ROI_speed(IsInBrainRegion,:));
+
+idx_speed=Onset_encoders(2).idx;
+ROI_speed=ROI_rotated(intersect(idx_NotF9orF7,idx_speed),:);
+IsInBrainRegion=ismember(round(ROI_speed),Zbrain_AllMask,'rows');
+ROI_speed(:,4)=1;
+csvwrite('BWDonset_encoding_ROIs.csv',ROI_speed(IsInBrainRegion,:));
+
+%% Integrators
 
 coefficients={}; %%%to make the coefficients variable that we will use. Regression coefficients represent the mean change in the response variable for one unit of change in the predictor variable while holding other predictors in the model constant.
 for idx=1:length(model_predict)%%% to make a variable the size of ModelResults
@@ -1089,6 +1247,103 @@ hold on;
 plot(Speed_flow(1,:),'Color','m');hold on;
 plot(Speed_flow(2,:),'Color','g');hold off;
 
+Int_data_temp=ZS2(Test_Int_idx,:);
+Int_data_temp_mean=mean(Int_data_temp,1);
+Int_data_temp=detrend(Int_data_temp')';
+figure;plot(mean(Int_data_temp,1));
+hold on;
+plot(Speed_flow(1,:),'Color','m');hold on;
+plot(Speed_flow(2,:),'Color','g');hold off;
+
+figure;plot(Int_data_temp_mean(66:176));set(gca,'Visible','off')
+
+Int_data_temp_std=std(Int_data_temp,1,1);
+
+
+% The first is the only 1mm*10s, but first showing so exagerated response
+% 4th is somewhat bad so I'll exclude it (the previous response encroach on
+% it
+
+int_quant=nan(length(Fish_list),7);
+int_toplot=nan(length(Fish_list),size(ZS2,2));
+Int_fish_temp=idx_Fish(Test_Int_idx);
+for fish_nb=1:length(Fish_list)
+    idx_fish_temp=find(Int_fish_temp==Fish_list(fish_nb));    
+    if length(idx_fish_temp)>9        
+        Int_data_temp_mean=mean(Int_data_temp(idx_fish_temp,:),1);
+        int_toplot(fish_nb,:)=Int_data_temp_mean;
+        int_quant(fish_nb,1)=trapz(Int_data_temp_mean(49:176)-min(Int_data_temp_mean(49:176)));
+        int_quant(fish_nb,2)=trapz(Int_data_temp_mean(249:440)-min(Int_data_temp_mean(249:440)));
+        int_quant(fish_nb,3)=trapz(Int_data_temp_mean(549:800)-min(Int_data_temp_mean(549:800)));
+        int_quant(fish_nb,4)=trapz(Int_data_temp_mean(1025:1120)-min(Int_data_temp_mean(1025:1120)));
+        int_quant(fish_nb,5)=trapz(Int_data_temp_mean(1120:1272)-min(Int_data_temp_mean(1120:1272)));
+        int_quant(fish_nb,6)=trapz(Int_data_temp_mean(1825:2005)-min(Int_data_temp_mean(1825:2005)));
+        int_quant(fish_nb,7)=trapz(Int_data_temp_mean(2100:2245)-min(Int_data_temp_mean(2100:2245)));
+        int_quant(fish_nb,8)=length(idx_fish_temp>9);
+    end
+end
+
+PrismTemp=[];
+for i=0:6
+    PrismTemp(1+i*3)=nanmean(int_quant(:,i+1));
+    PrismTemp(2+i*3)=nanstd(int_quant(:,i+1));
+    PrismTemp(3+i*3)=7;
+end
+
+int_quant_perFish=nan(size(int_quant,1)/3,7);
+for i=0:6
+    int_quant_perFish(i+1,:)=nanmean(int_quant(1+i*3:3+i*3,1:7),1);
+end
+
+
+CSV_temp=ROI_rotated(intersect(idx_NotF9orF7,Test_Int_idx),:);
+IsInBrainRegion=ismember(round(CSV_temp),Zbrain_AllMask,'rows');
+csvwrite('_FWD_int.csv',[CSV_temp(IsInBrainRegion,:) ones(sum(IsInBrainRegion),1)]);
+
+Int_data_temp_mean=nanmean(int_toplot,1);
+Fighandle=figure;
+set(Fighandle, 'Position', [10, 10, 1000, 1000]);
+ha=tight_subplot(3,4);
+axes(ha(1));plot(Int_data_temp_mean(49:176),'k','LineWidth',3);axis([0 220 -0.5 2]);set(gca,'visible','off');
+axes(ha(2));plot(Int_data_temp_mean(249:440),'k','LineWidth',3);axis([0 220 -0.5 2]);set(gca,'visible','off');
+axes(ha(3));plot(Int_data_temp_mean(549:800),'k','LineWidth',3);axis([0 220 -0.5 2]);set(gca,'visible','off');
+axes(ha(4));plot(Int_data_temp_mean(1100:1272),'k','LineWidth',3);axis([0 220 -0.5 2]);set(gca,'visible','off');
+
+axes(ha(5));area(Speed_flow(1,49:176),'FaceColor',[0.68 0.03 0.89]);xlim([-20 200]);ylim([0 2]);set(gca,'visible','off');
+axes(ha(6));area(Speed_flow(1,249:440),'FaceColor',[0.68 0.03 0.89]);xlim([-20 200]);ylim([0 2]);set(gca,'visible','off');
+axes(ha(7));area(Speed_flow(1,549:800),'FaceColor',[0.68 0.03 0.89]);xlim([-20 200]);ylim([0 2]);set(gca,'visible','off');
+axes(ha(8));area(Speed_flow(1,1100:1272),'FaceColor',[0.68 0.03 0.89]);xlim([-20 200]);ylim([0 2]);set(gca,'visible','off');
+
+axes(ha(9));i=1;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'box','off');set(gca,'color','none');set(gca,'xtick',[])
+axes(ha(10));i=2;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+axes(ha(11));i=3;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+axes(ha(12));i=4;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+
+Fighandle=figure;
+set(Fighandle, 'Position', [10, 10, 1000, 1000]);
+delay=10;
+ha=tight_subplot(2,4);
+axes(ha(1));
+a=area(Speed_flow(1,49-delay:176),'FaceColor',[0.6 0.6 0.6]);a.FaceAlpha = 0.3;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(49+5:176)-min(Int_data_temp_mean(49:176)),'k','LineWidth',4);axis([0 220 -0.5 2]);
+axes(ha(2));
+a=area(Speed_flow(1,1100-delay:1272),'FaceColor',[0.6 0.6 0.6]);a.FaceAlpha = 0.3;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(1100+5:1272)-min(Int_data_temp_mean(1100+5:1272)),'k','LineWidth',4);axis([0 220 -0.5 2]);set(gca,'visible','off');
+axes(ha(3));
+a=area(Speed_flow(1,249-delay:440),'FaceColor',[0.6 0.6 0.6]);a.FaceAlpha = 0.3;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(249+5:440)-min(Int_data_temp_mean(249+5:440)),'k','LineWidth',3);axis([0 220 -0.5 2]);set(gca,'visible','off');
+axes(ha(4));
+a=area(Speed_flow(1,549-delay:800),'FaceColor',[0.6 0.6 0.6]);a.FaceAlpha = 0.3;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(549+5:800)-min(Int_data_temp_mean(549+5:800)),'k','LineWidth',3);axis([0 220 -0.5 2]);set(gca,'visible','off');
+
+axes(ha(5));i=1;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'box','off');set(gca,'color','none');set(gca,'xtick',[])
+axes(ha(6));i=5;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+axes(ha(7));i=2;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+axes(ha(8));i=3;bar(nanmean(int_quant(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 300]);hold on;er = errorbar(nanmean(int_quant(:,i),1),nanstd(int_quant(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+
+
+
+
 Test_int=mean(ZS2(Test_Int_idx,:),1);
 Test_int_fwd=Test_int;
 Test_int_fwd(550:750)=Test_int(1620:1820);Test_int_fwd(1620:1820)=Test_int(550:750);
@@ -1178,7 +1433,7 @@ axes(ha(2));
 imagesc(ZS2(idx_rsq_int(idxKmeans_Int==Int_GoodBetas(2)),:),[-2 5]);colormap hot;
 
 
-%Onset
+%% Onset
 slow_fast=[1 2 3 2 1 2 2 1];
 slow_fast_fwd=[2 1 1 2 2 2 2 3 1 1];
 speed_idx_back=[find(slow_fast==1) find(slow_fast==2)];
@@ -1208,10 +1463,129 @@ PrismTemp(:,8)=OnsetData.bi.stdFWD(speed_idx_fwd,2);
 Fighandle=figure;
 set(Fighandle, 'Position', [100, 100, 1800, 900]);
 xplot=1;yplot=2;
-%ha=tight_subplot(yplot,xplot);
+ha=tight_subplot(yplot,xplot);
+axes(ha(1));
 plot(mean(ZS2(OnsetData.bi.idx(OnsetData.bi.idxKmeans==1),:),1));
 hold on;plot(mean(ZS2(OnsetData.bi.idx(OnsetData.bi.idxKmeans==3),:),1));
 plot(Speed_flow(1,:),'Color','m');hold on;
 plot(Speed_flow(2,:),'Color','g');hold off;
 axes(ha(2));
 imagesc(ZS2(OnsetData.bi.idx(OnsetData.bi.idxKmeans==3),:),[-2 5]);colormap hot;
+
+
+%% Figures
+
+%% Raster of basic like responses
+basic=1;
+idx_BasicClust_temp=find(MaxCorr_BasiClust_ind(idx_BasicClust_corr)==basic);
+idx_temp=idx_BasicClust_corr(idx_BasicClust_temp);
+idx_temp2=BasicClustData(basic).idxKmeans;
+idx_temp3=ismember(idx_temp2,BasicClustData(basic).GoodBetas([1 6]));
+idx_biOnset=idx_temp(idx_temp3);
+i=17;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=idx_rsq_basic(idx_temp);
+idx_biOnset=union(idx_biOnset,temp);
+i=13;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));temp=idx_rsq_NewFlow(idx_temp);
+idx_biOnset=union(idx_biOnset,temp);
+i=6;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=idx_rsq_basic(idx_temp);
+idx_biOnset=union(idx_biOnset,temp);
+i=11;idx_temp=find(idxKmeans_predict==GoodBetas_predict_select(i));temp=idx_rsq_predict(idx_temp);
+idx_biOnset=union(idx_biOnset,temp);
+
+%bidirectionnal ON
+figure;
+plot(BasicClustData(2).Cmap(BasicClustData(2).GoodBetas([4]),:)');
+idx_biON=(BasicClustData(2).idxKmeans==BasicClustData(2).GoodBetas([4]));
+hold on;plot(mean(BasicClustData(2).ZS(idx_biON,:),1));
+
+
+%FWD Onset
+figure;
+plot(BasicClustData(3).Cmap(BasicClustData(3).GoodBetas(1),:)');hold on; 
+i=2;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on; i=9;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on;i=1;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+i=2;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));idx_fwdOnset=idx_rsq_NewFlow(idx_temp);
+i=9;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));idx_rsq_NewFlow(idx_temp);
+idx_fwdOnset=union(idx_fwdOnset,idx_rsq_NewFlow(idx_temp));
+i=1;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));
+idx_fwdOnset=union(idx_fwdOnset,idx_rsq_basic(idx_temp));
+
+
+
+%FWD ON
+figure;
+plot(BasicClustData(4).Cmap(BasicClustData(4).GoodBetas(2),:)');hold on;
+idx_fwdON=(BasicClustData(4).idxKmeans==BasicClustData(4).GoodBetas(2));
+
+%FWD Int
+
+
+%BWD Onset
+figure;
+plot(BasicClustData(6).Cmap(BasicClustData(6).GoodBetas([4]),:)');hold on;
+%plot(BasicClustData(8).Cmap(BasicClustData(8).GoodBetas([2]),:)');hold on;
+i=14;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+hold on; i=10;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on;i=6;idx_temp=find(idxKmeans_predict==GoodBetas_predict_select(i));plot(mean(ZS2(idx_rsq_predict(idx_temp),:),1));
+idx_bwdOnset=idx_rsq_basic(find(idxKmeans_basic==GoodBetas_basic_select(i)));
+i=10;idx_temp=idx_rsq_NewFlow(find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i)));
+idx_bwdOnset=union(idx_bwdOnset,idx_temp);
+i=6;idx_temp=idx_rsq_predict(find(idxKmeans_predict==GoodBetas_predict_select(i)));
+idx_bwdOnset=union(idx_bwdOnset,idx_temp);
+
+%BWD ON
+figure;
+plot(BasicClustData(6).Cmap(2,:)');hold on;
+plot(BasicClustData(7).Cmap(7,:)');hold on;
+idx_BWDon=BasicClustData(7).idxKmeans==7;
+
+%BWD integrator
+figure;
+i=16;idx_temp=find(idxKmeans_basic==GoodBetas_basic_select(i));temp=mean(ZS2(idx_rsq_basic(idx_temp),:),1);plot(temp);
+hold on; i=12;idx_temp=find(idxKmeans_NewFlow==GoodBetas_NewFlow_select(i));plot(mean(ZS2(idx_rsq_NewFlow(idx_temp),:),1));
+hold on;i=7;idx_temp=find(idxKmeans_predict==GoodBetas_predict_select(i));plot(mean(ZS2(idx_rsq_predict(idx_temp),:),1));
+hold on;
+plot(Speed_flow(1,:),'Color','m');hold on;
+plot(Speed_flow(2,:),'Color','g');hold off;
+
+Complex_basic_stack=[ZS2(idx_biOnset(randperm(length(idx_biOnset))),:);
+BasicClustData(2).ZS(idx_biON,:);
+ZS2(idx_bwdOnset(randperm(length(idx_bwdOnset))),:);
+BasicClustData(7).ZS(idx_BWDon,:);
+ZS2(Test_Int_idx,:);
+ZS2(idx_fwdOnset(randperm(length(idx_fwdOnset))),:);
+BasicClustData(4).ZS(idx_fwdON,:)];%(randperm(length(idx_fwdON)))
+
+Fighandle=figure;
+set(Fighandle, 'Position', [10, 10, 2390, 1000]);
+imagesc(Complex_basic_stack,[-0.5 5]);colormap hot;set(gca,'Visible','off');
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Complex_final\Figure\FullRaster_basicCluster_complex.svg'),'-dsvg','-r0');
+
+colorbar;colormap hot;caxis([-0.5 5]);
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Complex_final\Figure\colorbar_complex.svg'),'-dsvg','-r0');
+
+%% Integrator figure
+
+Fighandle=figure;
+set(Fighandle, 'Position', [10, 10, 1000, 500]);
+delay=10;
+ha=tight_subplot(2,4);
+axes(ha(1));
+a=area(Speed_flow(1,49-delay:176),'FaceColor',[0.7 0 0.7]);a.FaceAlpha = 0.6;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(49+5:176)-min(Int_data_temp_mean(49:176)),'k','LineWidth',4);axis([0 220 -0.5 2.1]);
+axes(ha(2));
+a=area(Speed_flow(1,1100-delay:1272),'FaceColor',[0.7 0 0.7]);a.FaceAlpha = 0.6;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(1100+5:1272)-min(Int_data_temp_mean(1100+5:1272)),'k','LineWidth',4);axis([0 220 -0.5 2.1]);set(gca,'visible','off');
+axes(ha(3));
+a=area(Speed_flow(1,249-delay:440),'FaceColor',[0.7 0 0.7]);a.FaceAlpha = 0.6;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(249+5:440)-min(Int_data_temp_mean(249+5:440)),'k','LineWidth',4);axis([0 220 -0.5 2.1]);set(gca,'visible','off');
+axes(ha(4));
+a=area(Speed_flow(1,549-delay:800),'FaceColor',[0.7 0 0.7]);a.FaceAlpha = 0.6;a.LineStyle='None';a.BaseLine.LineStyle='None';set(gca,'visible','off');hold on;
+plot(Int_data_temp_mean(549+5:800)-min(Int_data_temp_mean(549+5:800)),'k','LineWidth',4);axis([0 220 -0.5 2.1]);set(gca,'visible','off');
+
+axes(ha(5));i=1;bar(nanmean(int_quant_perFish(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 275]);hold on;er = errorbar(nanmean(int_quant_perFish(:,i),1),nanstd(int_quant_perFish(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'box','off');set(gca,'color','none');set(gca,'xtick',[])
+axes(ha(6));i=5;bar(nanmean(int_quant_perFish(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 275]);hold on;er = errorbar(nanmean(int_quant_perFish(:,i),1),nanstd(int_quant_perFish(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+axes(ha(7));i=2;bar(nanmean(int_quant_perFish(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 275]);hold on;er = errorbar(nanmean(int_quant_perFish(:,i),1),nanstd(int_quant_perFish(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+axes(ha(8));i=3;bar(nanmean(int_quant_perFish(:,i),1),'FaceColor',[0.5 0.5 0.5]);axis([0.5 2 0 275]);hold on;er = errorbar(nanmean(int_quant_perFish(:,i),1),nanstd(int_quant_perFish(:,i),1,1));er.Color = [0 0 0];er.LineWidth = 2;hold off;set(gca,'visible','off');
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Complex_final\Figure\Integrator.svg'),'-dsvg','-r0');
+

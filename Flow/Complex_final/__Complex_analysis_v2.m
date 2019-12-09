@@ -681,6 +681,7 @@ for i=1:length(back)
     Max_flow_speed(counter,:)=max(ZS2(idx_speed,back(i):back_off(i)),[],2);    
     counter=counter+1;
 end
+
 for i=1:length(fwd)    
     Max_flow_speed(counter,:)=max(ZS2(idx_speed,fwd(i):fwd_off(i)),[],2);    
     counter=counter+1;

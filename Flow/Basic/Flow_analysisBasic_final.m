@@ -178,6 +178,22 @@ counter=counter+3;
 counter2=counter2+1;
 end
 
+idx=GoodClusters_goodmembers(1).idx;        
+RasterBasic=ZS(idx(randperm(length(idx))),:);
+for i=2:length(GoodBetas_select)
+    idx=GoodClusters_goodmembers(i).idx;        
+    RasterBasic=[RasterBasic ; ZS(idx(randperm(length(idx))),:)];
+end
+
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1500, 1500]);
+imagesc(RasterBasic,[-0.5 5]);colormap hot;set(gca,'YTickLabel',[]);
+set(gca,'Visible','off')
+print(Fighandle,strcat('D:\Pictures\processed\Flow\Basic\Figure\FullRaster_basic.svg'),'-dsvg','-r0');
+
+
+
 All_ROIs=[];
 ROIs_idx=[];
 for i = 1:length(MatFiles)
@@ -401,6 +417,17 @@ for i=1:size(DSI,1)
         DSI(i,j,2)=nanstd((RespFWD-RespBWD)./(RespFWD+RespBWD));
     end
 end
+
+[~,p]=kstest(DSI(:,1,1))
+
+
+p_KS=[];
+for j=1:size(DSI,2)
+    sigma_DSI=makedist('Normal','mu',0,'sigma',0.2);
+    [~,p_KS(j)]=kstest(DSI(:,j,1),sigma_DSI);
+end
+
+
 
 back=[55 255 455];back=back-5;
 fwd=[155 355 555];fwd=fwd-5;
@@ -1330,5 +1357,78 @@ end
 
 figure;imagesc(ZS(idx_temp,:));
 
+
+Fighandle=figure;
+set(Fighandle, 'Position', [100, 100, 1400, 900]);x = linspace(0.2,size(Cmap,2)/5,size(Cmap,2));
+counter=1;counter2=1;xplot=floor(sqrt(length(GoodBetas_select)));yplot=ceil(length(GoodBetas_select)/xplot);
+for i=1:length(GoodBetas_select)  
+    if counter==3
+        counter=counter+1;
+    end    
+    subplot(3,3,counter);plot(x,mean(ZS(idxKmeans_ZS_goodmembers==(GoodBetas_select(i)),:),1),'color',colors(counter2,:)/256);axis([0 131 -1 4]);rectangle('FaceColor','r','Position',[11 -1 10 0.25]);rectangle('FaceColor','r','Position',[51 -1 10 0.25]);rectangle('FaceColor','r','Position',[91 -1 10 0.25]);rectangle('FaceColor','b','Position',[31 -1 10 0.25]);rectangle('FaceColor','b','Position',[71 -1 10 0.25]);rectangle('FaceColor','b','Position',[111 -1 10 0.25]);
+    counter=counter+1;
+    counter2=counter2+1;
+end
+
+options = statset('UseParallel',1); %parallelize the replicates
+Nodes_coords={};
+for i=1:length(GoodBetas_select)  
+    idx_temp=find(idxKmeans_ZS_goodmembers==GoodBetas_select(i));
+    ROI_temp=ROI_fish(idx_temp,:);
+    Fish_temp=idx_Fish(idx_temp);
+    moduleN=10+ceil(length(ROI_temp)/20);
+    test_fish=1;
+    while moduleN>1 & test_fish==1
+        [idxKmeans_ROI Cmap_ROI]=kmeans(ROI_temp,moduleN,'Options',options,'Replicates',3,'MaxIter',1000);
+        for roi_nb=1:max(idxKmeans_ROI)
+            idx_roi=find(idxKmeans_ROI==roi_nb);
+            Fish_sum=histcounts(categorical(Fish_temp(idx_roi),Fish_list));
+            if sum(Fish_sum>10)<3
+                moduleN=moduleN-1;
+                break
+            else
+                test_fish=0;
+            end
+        end
+    end
+    Nodes_coords{i,1}=Cmap_ROI;
+    Nodes_coords{i,2}=idxKmeans_ROI;
+end
+clearvars i moduleN test_fish idx_roi idx_temp ROI_temp idxKmeans_ROI Cmap_ROI
+
+Node_all=[];
+Mean_allNodes=[];
+Mean_allNodes_perFish=[];
+Node_ID=[];
+counter=1;
+for i=1:length(Nodes_coords)
+    Node_all=cat(1,Node_all,Nodes_coords{i,1});
+    idx_temp=find(idxKmeans_ZS_goodmembers==GoodBetas_select(i));
+    Fish_temp=idx_Fish(idx_temp);
+    idxKmeans_ROI=Nodes_coords{i,2};
+    for roi_nb=1:max(idxKmeans_ROI)
+        idx_roi=find(idxKmeans_ROI==roi_nb);
+        Mean_allNodes(counter,:)=mean(ZS(idx_temp(idx_roi),:),1);
+        Fish_temp2=Fish_temp(idx_roi);
+        for fish_nb=1:length(Fish_list)       
+            idx_temp2=find(Fish_temp2==Fish_list(fish_nb));
+            if idx_temp2
+                Mean_allNodes_perFish(counter,fish_nb,:)=mean(ZS(idx_temp(idx_roi(idx_temp2)),:),1);
+            else
+                Mean_allNodes_perFish(counter,fish_nb,:)=nan(1,size(ZS,2));
+            end
+        end
+        counter=counter+1;
+    end
+    Node_ID=cat(1,Node_ID,ones(size(Nodes_coords{i,1},1),1)*i);
+end
+clearvars i moduleN test_fish idx_roi idx_temp ROI_temp idxKmeans_ROI Cmap_ROI Fish_temp Fish_temp2 idx_temp2
+
+
+CorrelationMatrices_perFish=nan(size(Mean_allNodes_perFish,1),size(Mean_allNodes_perFish,1),size(Mean_allNodes_perFish,2));
+for fish_nb=1:size(Mean_allNodes_perFish,2)
+    CorrelationMatrices_perFish(:,:,fish_nb)=squareform(pdist(squeeze(Mean_allNodes_perFish(:,fish_nb,:)),'correlation'));
+end
+CorrelationMatrix=squeeze(nanmean(CorrelationMatrices_perFish,3));
 
 
