@@ -1,6 +1,6 @@
 %% 
 %Get all the CaImAn outputs
-HDF5list1=dir('*4D2b_new2.hdf5');
+HDF5list1=dir('*4D2b_new.hdf5');
 
 
 %Load the functional data
@@ -34,50 +34,25 @@ for i = 1:length(HDF5list1)
     % Convert dimensions to row vector
     dims = dims(:)';
 
-    % Handle invalid indices
-    invalid_indices = find(indices <= 0);
-    if ~isempty(invalid_indices)
-        warning('Found zero or negative indices in the indices array.');
-        indices(invalid_indices) = [];
-        data(invalid_indices) = [];
+    % Convert the csc matrix into a matlab sparse
+    A_sparse=sparse(shape(1),shape(2));
+    for k=1:length(indptr)-1
+        ij=indptr(k)+1:indptr(k+1);
+        y=indices(ij)+1;
+        A_sparse(y,k)=data(ij);
     end
 
     % Initialize ROI centroid storage
-    idx_temp = CaImAnData(i).idx_components;
+    idx_temp = CaImAnData(i).idx_components+1;
     ROI_centroid = zeros(length(idx_temp), 3);  % For 3D data
 
     % Parallel processing each ROI
     Img_sum = zeros(dims);
-    parfor ROI_nb = 1:length(idx_temp)
-        Img = zeros(dims);
+    parfor ROI_nb = 1:length(idx_temp)        
+        ROI_idx=idx_temp(ROI_nb);
 
-        start_idx = indptr(idx_temp(ROI_nb)) + 1;
-        end_idx = indptr(idx_temp(ROI_nb)+1);
-
-        % Validate index range
-        if start_idx < 1 || end_idx > length(indices)
-            warning('Invalid index range: start_idx = %d, end_idx = %d', start_idx, end_idx);
-            continue;
-        end
-        
-        for ij = start_idx:end_idx
-            index = indices(ij);
-
-            if index <= 0 || index > prod(dims)
-                warning('Skipping invalid index: %d', index);
-                continue;
-            end
-
-            [col, row, slice] = ind2sub(dims, index);
-
-            if row < 1 || col < 1 || slice < 1 || row > dims(1) || col > dims(2) || slice > dims(3)
-                warning('Invalid subscript index: row = %d, col = %d, slice = %d', row, col, slice);
-                continue;
-            end
-
-            Img(row, col, slice) = data(ij);
-        end
-
+        temp=A_sparse(:,ROI_idx);
+        Img=reshape(full(temp),dims);       
         s = regionprops(Img > 0, Img, 'WeightedCentroid');
         if ~isempty(s)
             ROI_centroid(ROI_nb, :) = s.WeightedCentroid;
@@ -86,7 +61,6 @@ for i = 1:length(HDF5list1)
         end
         Img_sum=Img_sum+Img;
     end
-
     CaImAnData(i).ROI_centroid = ROI_centroid;
     CaImAnData(i).ImgROIs=Img_sum;
 end
